@@ -11,6 +11,14 @@ setup(
     url='https://github.com/lobachevzky/hsr-env',
     author='Ethan Brooks',
     author_email='ethanabrooks@gmail.com',
+    license='MIT',
+    classifiers=[
+        'Development Status :: 3 - Alpha',
+        'Intended Audience :: Developers',
+        'Topic :: Scientific/Engineering :: Artificial Intelligence',
+        'License :: OSI Approved :: MIT License',
+        'Programming Language :: Python :: 3.6',
+    ],
     packages=find_packages(),
     package_data={
         'environments': ['**/*.xml', '**/*.mjcf', 'hsr_meshes/meshes/*/*.stl'],
