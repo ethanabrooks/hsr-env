@@ -9,3 +9,6 @@ __pycache__/hsr.cpython-36.pyc
 __pycache__
 .ide/
 .idea
+dist/
+build/
+hsr_env.egg-info
