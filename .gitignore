@@ -1,0 +1,9 @@
+*.pyc
+__pycache__
+__init__.pyc
+__pycache__/__init__.cpython-36.pyc
+__pycache__/frozen_lake.cpython-36.pyc
+__pycache__/hierarchical_wrapper.cpython-36.pyc
+__pycache__/hindsight_wrapper.cpython-36.pyc
+__pycache__/hsr.cpython-36.pyc
+__pycache__

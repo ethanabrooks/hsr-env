@@ -1,0 +1,144 @@
+<mujoco model="world">
+    <option impratio="2.5" timestep="0.002"/>
+    <default>
+        <default class="wall">
+            <geom rgba="2 2 2 1"/>
+        </default>
+        <default class="floor">
+            <geom rgba=".4 .3 .2 1"/>
+        </default>
+        <default class="furniture">
+            <geom rgba="1 1 .8 1"/>
+        </default>
+
+        <default class="box">
+            <geom rgba=".7 .7 .7 1"/>
+        </default>
+        <default class="clear">
+            <geom rgba=".7 .7 .7 .2"/>
+        </default>
+        <default class="cubby">
+            <geom rgba=".9 .9 .7 1"/>
+        </default>
+        <default class="block2x4">
+            <geom type="box" size=".0635 .0317 .0234"/>
+        </default>
+
+        <!--<default class="block2x2">-->
+        <!--<geom type="box" size=".0317 .0317 .0234"/>-->
+        <!--<joint name='boxx' type='slide' axis='1 0 0' limited='false' damping='.01'/>-->
+        <!--<joint name='boxy' type='slide' axis='0 1 0' limited='false' damping='.01'/>-->
+        <!--<joint name='boxz' type='slide' axis='0 0 1' limited='false' damping='.01'/>-->
+        <!--</default>-->
+
+    </default>
+    <default class="all">
+        <geom condim="4" solimp="0.99 0.99 0.01" solref="0.01 1"/>
+    </default>
+    <option cone="elliptic"/>
+    <visual>
+        <map znear=".03"/>
+        <global offwidth="1000" offheight="1000"/>
+    </visual>
+    <compiler coordinate="local" angle="degree" meshdir="../hsr_meshes/meshes/" inertiafromgeom="true"/>
+    <size njmax="500" nconmax="100"/>
+    <asset>
+        <mesh name="base_light" file="base_v2/base_light.stl"/>
+        <mesh name="body_light" file="base_v2/body_light.stl"/>
+        <mesh name="torso_base" file="base_v2/torso_base.stl"/>
+        <mesh name="base" file="base_v2/base.stl"/>
+        <mesh name="laser" file="sensors/laser.stl"/>
+        <mesh name="torso_light" file="torso_v0/torso_light.stl"/>
+        <mesh name="torso" file="torso_v0/torso.stl"/>
+        <mesh name="head_pan" file="head_v1/head_pan.stl"/>
+        <mesh name="head_upper" file="head_v1/head_upper.stl"/>
+        <mesh name="head_tilt" file="head_v1/head_tilt.stl"/>
+        <mesh name="tablet_base" file="head_v1/tablet_base.stl"/>
+        <mesh name="head" file="head_v1/head.stl"/>
+        <mesh name="tablet" file="head_v1/tablet.stl"/>
+        <mesh name="head_camera" file="sensors/head_camera.stl"/>
+        <mesh name="rgbd_light" file="sensors/rgbd_light.stl"/>
+        <mesh name="rgbd" file="sensors/rgbd.stl"/>
+        <mesh name="shoulder" file="arm_v0/shoulder.stl"/>
+        <mesh name="arm_flex_light" file="arm_v0/arm_flex_light.stl"/>
+        <mesh name="arm_flex" file="arm_v0/arm_flex.stl"/>
+        <mesh name="arm_roll_light" file="arm_v0/arm_roll_light.stl"/>
+        <mesh name="arm_roll" file="arm_v0/arm_roll.stl"/>
+        <mesh name="wrist_flex" file="wrist_v0/wrist_flex.stl"/>
+        <mesh name="wrist_roll" file="wrist_v0/wrist_roll.stl"/>
+        <mesh name="palm" file="hand_v0/palm.stl"/>
+        <mesh name="l_proximal" file="hand_v0/l_proximal.stl"/>
+        <mesh name="l_distal" file="hand_v0/l_distal.stl"/>
+        <mesh name="r_proximal" file="hand_v0/r_proximal.stl"/>
+        <mesh name="r_distal" file="hand_v0/r_distal.stl"/>
+    </asset>
+    <worldbody>
+        <light diffuse=".5 .5 .5" pos="0 0 3" dir="0 0 -1"/>
+        <geom name="floor" type="plane" size="2 2 2" pos="0 0 0" class="floor"/>
+
+        <body name="goal" pos="0 0 0" mocap="true">
+            <site name="goal" size=".01 .01 .01" pos="0 0 0" rgba="0 1 0 .2"/>
+        </body>
+
+        <body name="pan" pos="0 0 .4">
+            <geom type="box" size=".17 .2667 .005" class="box"/>
+            <!--<geom type="box" size=".001  .2667 .01" pos=".17 0  .01"  class="clear"/>-->
+            <!--<geom type="box" size=".001  .2667 .01" pos="-.17 0 .01" class="clear"/>-->
+            <!--<geom type="box" size=".17 .001  .01" pos="0 .2667  .01"  class="clear"/>-->
+            <!--<geom type="box" size=".17 .001  .01" pos="0 -.2667 .01" class="clear"/>-->
+        </body>
+
+        <!--<body name="block1" pos="0 0 .418">-->
+          <!--<geom name="block1" type="box" mass="1" size=".05 .025 .017" rgba=".8 .1 .1 1" condim="6" solimp="0.99 0.99 0.01" solref="0.01 1"/>-->
+          <!--<freejoint name='block1joint'/>-->
+        <!--</body>-->
+
+        <!--<body name="block2" pos="0 0 .44">-->
+          <!--<geom type="box" size=".0317 .0317 .0234" rgba=".1 .8 .1 1" condim="4" solimp="0.99 0.99 0.01" solref="0.01 1"/>-->
+          <!--<freejoint name='box2joint'/>-->
+        <!--</body>-->
+
+        <include file="hsr.mjcf"/>
+    </worldbody>
+    <actuator>
+        <position gear="3" kp="300" name="slide_x_motor" joint="slide_x"
+                  forcelimited="true" forcerange="-100 100"
+                  ctrllimited="true" ctrlrange="-1 1"/>
+        <position gear="3" kp="300" name="slide_y_motor" joint="slide_y"
+                  forcelimited="true" forcerange="-100 100"
+                  ctrllimited="true" ctrlrange="-1 1"/>
+        <position gear="5" kp="10" name="arm_lift_motor" joint="arm_lift_joint"
+                  forcelimited="true" forcerange="-20 20"
+                  ctrllimited="true" ctrlrange="2.3 4.1"/>
+        <position gear="1" kp="1000" name="arm_flex_motor" joint="arm_flex_joint"
+                  forcelimited="true" forcerange="-15 35"
+                  ctrllimited="true" ctrlrange="-1.2 -.5"/>
+        <position gear="1" kp="1000" name="wrist_roll_motor" joint="wrist_roll_joint"
+                  forcelimited="true" forcerange="-20 20"
+                  ctrllimited="true" ctrlrange="-1.57 1.57"/>
+        <position gear="1" kp="1000" name="hand_l_proximal_motor" joint="hand_l_proximal_joint"
+                  forcelimited="true" forcerange="-20 20"
+                  ctrllimited="true" ctrlrange="0 0.349066"/>
+        <position gear="1" kp="1000" name="hand_r_proximal_motor" joint="hand_r_proximal_joint"
+                  forcelimited="true" forcerange="-20 20"
+                  ctrllimited="true" ctrlrange="0 0.349066"/>
+
+    </actuator>
+    <contact>
+        <exclude body1="base_link" body2="arm_lift_link"/>
+        <exclude body1="arm_lift_link" body2="arm_flex_link"/>
+        <exclude body1="arm_flex_link" body2="arm_roll_link"/>
+        <exclude body1="arm_roll_link" body2="wrist_flex_link"/>
+        <exclude body1="wrist_flex_link" body2="wrist_roll_link"/>
+        <exclude body1="wrist_roll_link" body2="hand_palm_link"/>
+        <exclude body1="arm_flex_link" body2="hand_palm_link"/>
+        <exclude body1="hand_palm_link" body2="hand_l_proximal_link"/>
+        <exclude body1="hand_l_proximal_link" body2="hand_l_spring_proximal_link"/>
+        <exclude body1="hand_l_spring_proximal_link" body2="hand_l_mimic_distal_link"/>
+        <exclude body1="hand_l_mimic_distal_link" body2="hand_l_distal_link"/>
+        <exclude body1="hand_palm_link" body2="hand_r_proximal_link"/>
+        <exclude body1="hand_r_proximal_link" body2="hand_r_spring_proximal_link"/>
+        <exclude body1="hand_r_spring_proximal_link" body2="hand_r_mimic_distal_link"/>
+        <exclude body1="hand_r_mimic_distal_link" body2="hand_r_distal_link"/>
+    </contact>
+</mujoco>
