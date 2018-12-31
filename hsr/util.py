@@ -10,27 +10,7 @@ from functools import wraps
 from gym.spaces import Box
 
 from hsr.env import get_xml_filepath
-
-def parse_vector(length: int, delim: str):
-    def _parse_vector(arg: str):
-        vector = tuple(map(float, arg.split(delim)))
-        if len(vector) != length:
-            raise argparse.ArgumentError(f'Arg {arg} must include {length} float values'
-                                         f'delimited by "{delim}".')
-        return vector
-
-    return _parse_vector
-
-def parse_space(dim: int):
-    def _parse_space(arg: str):
-        regex = re.compile('\((-?[\.\d]+),(-?[\.\d]+)\)')
-        matches = regex.findall(arg)
-        if len(matches) != dim:
-            raise argparse.ArgumentTypeError(f'Arg {arg} must have {dim} substrings '
-                                             f'matching pattern {regex}.')
-        return make_box(*matches)
-
-    return _parse_space
+from utils import parse_vector, parse_space
 
 def add_env_args(parser):
     parser.add_argument(
@@ -56,6 +36,7 @@ def add_wrapper_args(parser):
     parser.add_argument('--geofence', type=float, required=True)
     parser.add_argument('--n-blocks', type=int, required=True)
     parser.add_argument('--goal-space', type=parse_space(dim=3), required=True)  # TODO
+
 
 def xml_setter(arg: str):
     setters = [XMLSetter(*v.split(',')) for v in arg]
@@ -132,7 +113,7 @@ def mutate_xml(changes: List[XMLSetter], dofs: List[str], goal_space: Box, n_blo
                         rgba=rgba[i],
                         condim='6',
                         solimp="0.99 0.99 "
-                        "0.01",
+                               "0.01",
                         solref='0.01 1'))
                 ET.SubElement(body, 'freejoint', attrib=dict(name=f'block{i}joint'))
 
