@@ -11,6 +11,51 @@ from gym.spaces import Box
 
 from hsr.env import get_xml_filepath
 
+def parse_vector(length: int, delim: str):
+    def _parse_vector(arg: str):
+        vector = tuple(map(float, arg.split(delim)))
+        if len(vector) != length:
+            raise argparse.ArgumentError(f'Arg {arg} must include {length} float values'
+                                         f'delimited by "{delim}".')
+        return vector
+
+    return _parse_vector
+
+def parse_space(dim: int):
+    def _parse_space(arg: str):
+        regex = re.compile('\((-?[\.\d]+),(-?[\.\d]+)\)')
+        matches = regex.findall(arg)
+        if len(matches) != dim:
+            raise argparse.ArgumentTypeError(f'Arg {arg} must have {dim} substrings '
+                                             f'matching pattern {regex}.')
+        return make_box(*matches)
+
+    return _parse_space
+
+def add_env_args(parser):
+    parser.add_argument(
+        '--image-dims', type=parse_vector(length=2, delim=','), default='800,800')
+    parser.add_argument('--block-space', type=parse_space(dim=4))
+    parser.add_argument('--min-lift-height', type=float, default=None)
+    parser.add_argument('--no-random-reset', action='store_true')
+    parser.add_argument('--obs-type', type=str, default=None)
+    parser.add_argument('--randomize-pose', action='store_true')
+    parser.add_argument('--render', action='store_true')
+    parser.add_argument('--render-freq', type=int, default=None)
+    parser.add_argument('--record', action='store_true')
+    parser.add_argument('--record-separate-episodes', action='store_true')
+    parser.add_argument('--record-freq', type=int, default=None)
+    parser.add_argument('--record-path', type=Path, default=None)
+    parser.add_argument('--steps-per-action', type=int, required=True)
+
+
+def add_wrapper_args(parser):
+    parser.add_argument('--xml-file', type=Path, default='models/world.xml')
+    parser.add_argument('--set-xml', type=xml_setter, action='append', nargs='*')
+    parser.add_argument('--use-dof', type=str, action='append', default=[])
+    parser.add_argument('--geofence', type=float, required=True)
+    parser.add_argument('--n-blocks', type=int, required=True)
+    parser.add_argument('--goal-space', type=parse_space(dim=3), required=True)  # TODO
 
 def xml_setter(arg: str):
     setters = [XMLSetter(*v.split(',')) for v in arg]
