@@ -11,6 +11,7 @@ from gym.spaces import Box
 
 from hsr.env import get_xml_filepath
 from utils import parse_vector, parse_space
+import functools
 
 def add_env_args(parser):
     parser.add_argument(
@@ -71,7 +72,10 @@ def env_wrapper(func):
 
             return func(env_args=env_args, **kwargs)
 
-    return lambda wrapper_args, **kwargs: _wrapper(**wrapper_args, **kwargs)
+    def new_function(wrapper_args, **kwargs):
+        return _wrapper(**wrapper_args, **kwargs)
+
+    return new_function
 
 
 XMLSetter = namedtuple('XMLSetter', 'path value')

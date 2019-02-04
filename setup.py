@@ -23,4 +23,4 @@ setup(
     package_data={
         'environments': ['**/*.xml', '**/*.mjcf', 'hsr_meshes/meshes/*/*.stl'],
     },
-    install_requires=['gym==0.10.4', 'numpy'])
+    install_requires=['gym', 'numpy'])
