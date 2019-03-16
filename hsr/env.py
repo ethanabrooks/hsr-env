@@ -23,10 +23,10 @@ def get_xml_filepath(xml_filename=Path('models/world.xml')):
 class HSREnv:
     def __init__(self,
                  xml_file: Path,
-                 steps_per_action: int,
-                 geofence: float,
-                 goal_space: spaces.Box,
                  block_space: spaces.Box,
+                 steps_per_action: int = 300,
+                 geofence: float = .05,
+                 goal_space: spaces.Box = None,
                  min_lift_height: float = None,
                  randomize_pose: bool = False,
                  obs_type: str = None,
@@ -42,6 +42,8 @@ class HSREnv:
         self.random_goals = random_goals
         if not xml_file.is_absolute():
             xml_file = get_xml_filepath(xml_file)
+
+        assert xml_file.exists()
 
         self.no_random_reset = no_random_reset
         self.geofence = geofence
@@ -111,10 +113,11 @@ class HSREnv:
         self._min_lift_height = min_lift_height
         self.goal_space = goal_space
 
-        epsilon = .0001
-        too_close = self.goal_space.high - self.goal_space.low < 2 * epsilon
-        self.goal_space.high[too_close] += epsilon
-        self.goal_space.low[too_close] -= epsilon
+        if goal_space:
+            epsilon = .0001
+            too_close = self.goal_space.high - self.goal_space.low < 2 * epsilon
+            self.goal_space.high[too_close] += epsilon
+            self.goal_space.low[too_close] -= epsilon
         self.goal = None
 
         def using_joint(name):
