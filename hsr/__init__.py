@@ -12,7 +12,7 @@ if __name__ == '__main__':
                      high=np.array([0, 0, .498]),
                  ),
                  min_lift_height=.08,
-                 render=True)
+                 render_freq=2)
     env.reset()
     while True:
         action = env.action_space.sample()
