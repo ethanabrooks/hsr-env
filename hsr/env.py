@@ -1,190 +1,61 @@
 # stdlib
-import copy
 from collections import namedtuple
-from contextlib import contextmanager
-import itertools
 from pathlib import Path
-from typing import Tuple
+from typing import List, Dict
 
-# third party
-from gym import spaces
-from gym.envs.mujoco import MujocoEnv
-from gym.utils import closer
-from gym.wrappers.monitoring.video_recorder import VideoRecorder
 import numpy as np
-import mujoco_py
+# third party
+from gym import Space
+from gym.spaces import Box
+
+from hsr.mujoco_env import MujocoEnv
+
 
 def get_xml_filepath(xml_filename=Path('models/world.xml')):
     return Path(Path(__file__).parent, xml_filename).absolute()
 
 
+GoalSpec = namedtuple('GoalSpec', 'a b distance')
+
+
 class HSREnv(MujocoEnv):
     def __init__(self,
                  xml_file: Path,
-                 block_space: spaces.Box,
+                 goals: List[GoalSpec],
+                 starts: Dict[str, Box],
                  steps_per_action: int = 300,
-                 geofence: float = .05,
-                 goal_space: spaces.Box = None,
-                 min_lift_height: float = None,
-                 randomize_pose: bool = False,
                  obs_type: str = None,
-                 image_dims: Tuple[int] = None,
                  render: bool = False,
-                 record_path: Path = None,
-                 record_freq: int = None,
                  record: bool = False,
-                 record_separate_episodes: bool = False,
+                 record_freq: int = None,
                  render_freq: int = None,
-                 no_random_reset: bool = False,
-                 random_goals: bool = True):
-        self.random_goals = random_goals
+                 ):
+        self.starts = starts
+        self.goals_specs = goals
+        self.goals = None
+        self._time_steps = 0
         if not xml_file.is_absolute():
             xml_file = get_xml_filepath(xml_file)
 
-        assert xml_file.exists()
-
-        self.no_random_reset = no_random_reset
-        self.geofence = geofence
         self._obs_type = obs_type
-        self._block_name = 'block'
-        left_finger_name = 'hand_l_distal_link'
-        self._finger_names = [
-            left_finger_name,
-            left_finger_name.replace('_l_', '_r_')
-        ]
-        self._episode = 0
-        self._time_steps = 0
 
         # required for OpenAI code
         self.metadata = {'render.modes': 'rgb_array'}
         self.reward_range = -np.inf, np.inf
         self.spec = None
-        self.render_freq = 20 if (render
-                                  and render_freq is None) else render_freq
+
+        self._record = record or record_freq
+        self._render = render or render_freq
+        self.render_freq = render_freq or 20
+        self.record_freq = record_freq or 20
         self.steps_per_action = steps_per_action
-        import ipdb; ipdb.set_trace()
-        super().__init__(str(xml_file), frame_skip=record_freq or 20)
+        self._block_name = 'block'
+        self._finger_names = ['hand_l_distal_link',
+                              'hand_r_distal_link']
+        super().__init__(str(xml_file), frame_skip=self.record_freq)
+        self.initial_state = self.sim.get_state()
 
-        # record stuff
-        # self._video_recorder = None
-        # self._record_separate_episodes = record_separate_episodes
-        # self._record = any((record_separate_episodes, record_path, record_freq,
-        #                     record))
-        # if self._record:
-        #     self._record_path = record_path or Path('/tmp/training-video')
-        #     image_dims = image_dims or (1000, 1000)
-        #     self._record_freq = record_freq or 20
-        #
-        #     if not record_separate_episodes:
-        #         self._video_recorder = self.reset_recorder(self._record_path)
-        # else:
-        #     image_dims = image_dims or []
-        # self._image_dimensions = image_dims
-        #
-        # self.model = mujoco_py.load_model_from_path(str(xml_file))
-        # self.sim = mujoco_py.MjSim(self.model)
-        #
-        # # initial values
-        # self.initial_state = self.sim.get_state()
-        #
-        # # block stuff
-        # self.initial_block_pos = []
-        # self._block_qposadrs = []
-        # self.n_blocks = 0
-        # offset = np.array([
-        #     0,  # x
-        #     1,  # y
-        #     3,  # quat0
-        #     6,  # quat3
-        # ])
-        self._block_space = block_space
-        # for i in itertools.count():
-        #     if self._block_name + str(i) not in self.model.body_names:
-        #         break
-        #     self.initial_block_pos.append(
-        #         np.copy(self.block_pos(blocknum=i)))
-        #     # joint_offset = self.model.get_joint_qpos_addr(
-        #     #     f'block{i}joint') + offset
-        #     # self._block_qposadrs.append(joint_offset)
-        #     self.n_blocks = i + 1
-
-        # goal space
-        self._min_lift_height = min_lift_height
-        self.goal_space = goal_space
-
-        if goal_space:
-            epsilon = .0001
-            too_close = self.goal_space.high - self.goal_space.low < 2 * epsilon
-            self.goal_space.high[too_close] += epsilon
-            self.goal_space.low[too_close] -= epsilon
-        self.goal = None
-
-        # def using_joint(name):
-        #     return name in self.model.joint_names
-        #
-        # self._base_joints = list(filter(using_joint, ['slide_x', 'slide_y']))
-        # if obs_type == 'openai':
-        #     raw_obs_space = spaces.Box(
-        #         low=-np.inf,
-        #         high=np.inf,
-        #         shape=(25, ),
-        #         dtype=np.float32,
-        #     )
-        # else:
-        #     raw_obs_space = spaces.Box(
-        #         low=-np.inf,
-        #         high=np.inf,
-        #         shape=(self.model.nq + len(self._base_joints), ),
-        #         dtype=np.float32,
-        #     )
-        # self.observation_space = spaces.Tuple(
-        #     Observation(observation=raw_obs_space, goal=self.goal_space))
-        #
-        # # joint space
-        # all_joints = [
-        #     'slide_x', 'slide_y', 'arm_lift_joint', 'arm_flex_joint',
-        #     'wrist_roll_joint', 'hand_l_proximal_joint'
-        # ]
-        # self._joints = list(filter(using_joint, all_joints))
-        # jnt_range_idx = [
-        #     self.model.joint_name2id(j) for j in self._joints
-        # ]
-        # self._joint_space = spaces.Box(
-        #     *map(np.array, zip(*self.model.jnt_range[jnt_range_idx])),
-        #     dtype=np.float32)
-        # self._joint_qposadrs = [
-        #     self.model.get_joint_qpos_addr(j) for j in self._joints
-        # ]
-        # self.randomize_pose = randomize_pose
-        #
-        # # action space
-        # self.action_space = spaces.Box(
-        #     low=self.model.actuator_ctrlrange[:-1, 0],
-        #     high=self.model.actuator_ctrlrange[:-1, 1],
-        #     dtype=np.float32)
-
-    def seed(self, seed=None):
-        np.random.seed(seed)
-
-    # def render(self, mode=None):
-    #     if mode == 'rgb_array':
-    #         return self.sim.render_offscreen(
-    #             camera_name=camera_name, labels=labels)
-    #     return self.sim.render(camera_name=camera_name, labels=labels)
-
-    def image(self, camera_name='rgb'):
-        return self.sim.render_offscreen(camera_name)
-
-    def compute_terminal(self):
-        return self.is_successful()
-
-    def compute_reward(self):
-        if self.is_successful():
-            return 1
-        else:
-            return 0
-
-    def _get_obs(self):
+    def _get_observation(self):
         if self._obs_type == 'openai':
 
             # positions
@@ -225,115 +96,55 @@ class HSREnv(MujocoEnv):
                 gripper_vel,
             ])
         else:
-            base_qvels = [
-                self.sim.data.get_joint_qvel(j) for j in self._base_joints
-            ]
-            obs = np.concatenate([self.sim.data.qpos, base_qvels])
-        observation = Observation(observation=obs, goal=self.goal)
-        # assert self.observation_space.contains(observation)
-        return observation
+            obs = np.concatenate([self.sim.data.qpos, self.sim.data.qvel])
+        return obs
 
     def step(self, action):
-        action = np.clip(action, self.action_space.low, self.action_space.high)
-
-        mirrored = 'hand_l_proximal_motor'
-        mirroring = 'hand_r_proximal_motor'
-
-        # insert mirrored values at the appropriate indexes
-        mirrored_index, mirroring_index = [
-            self.model.actuator_name2id(n)
-            for n in [mirrored, mirroring]
-        ]
-        # necessary because np.insert can't append multiple values to end:
-        mirroring_index = np.minimum(mirroring_index, self.action_space.shape)
-        action = np.insert(action, mirroring_index, action[mirrored_index])
-
-        self._time_steps += 1
-        assert np.shape(action) == np.shape(self.sim.data.ctrl)
-
-        assert np.shape(action) == np.shape(self.sim.data.ctrl)
+        self.sim.data.ctrl[:] = action
         for i in range(self.steps_per_action):
-            self.sim.data.ctrl[:] = action
-            self.sim.step()
-            if self.render_freq is not None and i % self.render_freq == 0:
+            if self._render and i % self.render_freq == 0:
                 self.render()
-            if self._record and i % self._record_freq == 0:
-                self._video_recorder.capture_frame()
+            if self._record and i % self.record_freq == 0:
+                self.record()
+            self.sim.step()
+        self._time_steps += 1
+        done = success = all([self.in_range(*s) for s in self.goals])
+        reward = float(success)
+        info = {'log count': {'success': success and self._time_steps > 0}}
+        return self._get_observation(), reward, done, info
 
-        done = np.squeeze(self.compute_terminal())
-        reward = np.squeeze(self.compute_reward())
-
-        # pause when goal is achieved
-        if reward > 0:
-            for _ in range(50):
-                if self.render_freq is not None:
-                    self.render()
-                if self._record:
-                    self._video_recorder.capture_frame()
-
-        info = {'log count': {'success': reward > 0 and self._time_steps > 1}}
-        return self._get_obs(), reward, done, info
-
-    def _sync_grippers(self, qpos):
-        qpos[self.sim.get_jnt_qposadr('hand_r_proximal_joint')] = qpos[
-            self.sim.get_jnt_qposadr('hand_l_proximal_joint')]
-
-    @contextmanager
-    def get_initial_state(self):
-        initial_state = copy.deepcopy(self.initial_state)
-        yield initial_state
-        self.sim.set_state(initial_state)
+    def in_range(self, a, b, distance):
+        pos1 = a if isinstance(a, np.ndarray) else self.sim.data.get_body_xpos(a)
+        pos2 = b if isinstance(b, np.ndarray) else self.sim.data.get_body_xpos(b)
+        return distance_between(pos1, pos2) < distance
 
     def reset(self):
-        if self.no_random_reset:
-            with self.get_initial_state() as qpos:
-                for i, adrs in enumerate(self._block_qposadrs):
-
-                    # if block out of bounds
-                    if not self.goal_space.contains(self.block_pos(i)):
-                        # randomize blocks
-                        qpos[adrs] = self._block_space.sample()
-
-        else:
-            self.sim.reset()  # restore original qpos
-            with self.get_initial_state() as qpos:
-                if self.randomize_pose:
-                    # randomize joint angles
-                    qpos[self._joint_qposadrs] = self._joint_space.sample()
-                    self._sync_grippers(qpos)
-
-                # randomize blocks
-                for adrs in self._block_qposadrs:
-                    qpos[adrs] = self._block_space.sample()
-
-        self.set_goal(self.new_goal())
-
-        if self._time_steps > 0:
-            self._episode += 1
         self._time_steps = 0
+        self.sim.reset()
+        state = self.sim.get_state()
 
-        # if necessary, reset VideoRecorder
-        if self._record and self._record_separate_episodes:
-            if self._video_recorder:
-                self._video_recorder.close()
-            record_path = Path(self._record_path, str(self._episode))
-            self._video_recorder = self.reset_recorder(record_path)
+        def sample_from_spaces(a, b, distance):
+            if isinstance(a, Space):
+                a = a.sample()
+            if isinstance(b, Space):
+                b = b.sample()
+            return GoalSpec(a, b, distance)
 
-        return self._get_obs()
+        self.goals = [sample_from_spaces(*s) for s in self.goals_specs]
+        self.sim.data.mocap_pos[:] = np.concatenate(
+            [x for s in self.goals for x in [s.a, s.b]
+             if isinstance(x, np.ndarray)])
 
-    def new_goal(self):
-        if self._min_lift_height:
-            return self.block_pos() + np.array([0, 0, self._min_lift_height])
-        elif self.random_goals or self.goal is None:
-            return self.goal_space.sample()
-        else:
-            return self.goal
+        for joint, space in self.starts.items():
+            assert isinstance(space, Space)
+            start, end = self.model.get_joint_qpos_addr(joint)
+            state.qpos[start: end] = space.sample()
+        self.sim.set_state(state)
+        self.sim.forward()
+        return self._get_observation()
 
-    def achieved_goal(self):
-        return self.block_pos()
-
-    def block_pos(self, blocknum=0):
-        return self.sim.data.get_body_xpos(self._block_name + str(blocknum))
+    def block_pos(self):
+        return self.sim.data.get_body_xpos(self._block_name)
 
     def gripper_pos(self):
         finger1, finger2 = [
@@ -341,81 +152,23 @@ class HSREnv(MujocoEnv):
         ]
         return (finger1 + finger2) / 2.
 
-    def reset_recorder(self, record_path: Path):
-        record_path.mkdir(parents=True, exist_ok=True)
-        print(f'Recording video to {record_path}.mp4')
-        video_recorder = VideoRecorder(
-            env=self,
-            base_path=str(record_path),
-            metadata={'episode': self._episode},
-            enabled=True,
-        )
-        closer.Closer().register(video_recorder)
-        return video_recorder
+    # def reset_recorder(self, record_path: Path):
+    #     record_path.mkdir(parents=True, exist_ok=True)
+    #     print(f'Recording video to {record_path}.mp4')
+    #     video_recorder = VideoRecorder(
+    #         env=self,
+    #         base_path=str(record_path),
+    #         metadata={'episode': self._episode},
+    #         enabled=True,
+    #     )
+    #     closer.Closer().register(video_recorder)
+    #     return video_recorder
 
     def __enter__(self):
         return self
 
     def __exit__(self, *args):
         self.sim.__exit__()
-
-    def is_successful(self, achieved_goal=None, desired_goal=None):
-        if self._min_lift_height:
-            return self.block_pos(
-            )[2] > self.initial_block_pos[0][2] + self._min_lift_height
-
-        # only check first block
-        if achieved_goal is None:
-            achieved_goal = self.block_pos()
-        if desired_goal is None:
-            desired_goal = self.goal
-        return distance_between(achieved_goal, desired_goal) < self.geofence
-
-    def set_goal(self, goal: np.ndarray):
-        # assert self.goal_space.contains(goal)
-        self.sim.data.mocap_pos[:] = goal
-        self.goal = goal
-
-
-class MultiBlockHSREnv(HSREnv):
-    def __init__(self, **kwargs):
-        super().__init__(**kwargs)
-        self.goals = None
-
-    def is_successful(self, achieved_goal=None, desired_goal=None):
-        if achieved_goal is None:
-            achieved_goal = np.stack(
-                [self.block_pos(i).copy() for i in range(self.n_blocks)])
-        if desired_goal is None:
-            desired_goal = self.goals
-
-        return np.all(
-            distance_between(achieved_goal[..., :2], desired_goal[..., :2]) <
-            self.geofence,
-            axis=-1)
-
-    def set_goal(self, goal: np.ndarray):
-        goal[2] = self.initial_block_pos[0][2]
-        super().set_goal(goal)
-        self.goals = np.stack(
-            [self.goal] +
-            [self.block_pos(i).copy() for i in range(1, self.n_blocks)])
-
-
-class MoveGripperEnv(HSREnv):
-    def is_successful(self, achieved_goal=None, desired_goal=None):
-        if achieved_goal is None:
-            achieved_goal = self.gripper_pos()
-        if desired_goal is None:
-            desired_goal = self.goal
-        return super().is_successful(
-            achieved_goal=achieved_goal, desired_goal=desired_goal)
-
-    def achieved_goal(self):
-        return self.gripper_pos()
-
-    def compute_reward(self):
-        return 0 if self.is_successful() else -1
 
 
 def quaternion2euler(w, x, y, z):
