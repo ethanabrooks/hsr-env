@@ -1,4 +1,5 @@
 # stdlib
+import copy
 from collections import namedtuple
 from contextlib import contextmanager
 import itertools
@@ -7,20 +8,17 @@ from typing import Tuple
 
 # third party
 from gym import spaces
+from gym.envs.mujoco import MujocoEnv
 from gym.utils import closer
 from gym.wrappers.monitoring.video_recorder import VideoRecorder
 import numpy as np
-
-# first party
-import mujoco
-from mujoco import MujocoError, ObjType
-
+import mujoco_py
 
 def get_xml_filepath(xml_filename=Path('models/world.xml')):
     return Path(Path(__file__).parent, xml_filename).absolute()
 
 
-class HSREnv:
+class HSREnv(MujocoEnv):
     def __init__(self,
                  xml_file: Path,
                  block_space: spaces.Box,
@@ -64,50 +62,51 @@ class HSREnv:
         self.render_freq = 20 if (render
                                   and render_freq is None) else render_freq
         self.steps_per_action = steps_per_action
+        import ipdb; ipdb.set_trace()
+        super().__init__(str(xml_file), frame_skip=record_freq or 20)
 
         # record stuff
-        self._video_recorder = None
-        self._record_separate_episodes = record_separate_episodes
-        self._record = any((record_separate_episodes, record_path, record_freq,
-                            record))
-        if self._record:
-            self._record_path = record_path or Path('/tmp/training-video')
-            image_dims = image_dims or (1000, 1000)
-            self._record_freq = record_freq or 20
-
-            if not record_separate_episodes:
-                self._video_recorder = self.reset_recorder(self._record_path)
-        else:
-            image_dims = image_dims or []
-        self._image_dimensions = image_dims
-
-        self.sim = mujoco.Sim(str(xml_file), *image_dims, n_substeps=1)
-
-        # initial values
-        self.initial_qpos = self.sim.qpos.ravel().copy()
-        self.initial_qvel = self.sim.qvel.ravel().copy()
-
-        # block stuff
-        self.initial_block_pos = []
-        self._block_qposadrs = []
-        self.n_blocks = 0
-        offset = np.array([
-            0,  # x
-            1,  # y
-            3,  # quat0
-            6,  # quat3
-        ])
+        # self._video_recorder = None
+        # self._record_separate_episodes = record_separate_episodes
+        # self._record = any((record_separate_episodes, record_path, record_freq,
+        #                     record))
+        # if self._record:
+        #     self._record_path = record_path or Path('/tmp/training-video')
+        #     image_dims = image_dims or (1000, 1000)
+        #     self._record_freq = record_freq or 20
+        #
+        #     if not record_separate_episodes:
+        #         self._video_recorder = self.reset_recorder(self._record_path)
+        # else:
+        #     image_dims = image_dims or []
+        # self._image_dimensions = image_dims
+        #
+        # self.model = mujoco_py.load_model_from_path(str(xml_file))
+        # self.sim = mujoco_py.MjSim(self.model)
+        #
+        # # initial values
+        # self.initial_state = self.sim.get_state()
+        #
+        # # block stuff
+        # self.initial_block_pos = []
+        # self._block_qposadrs = []
+        # self.n_blocks = 0
+        # offset = np.array([
+        #     0,  # x
+        #     1,  # y
+        #     3,  # quat0
+        #     6,  # quat3
+        # ])
         self._block_space = block_space
-        try:
-            for i in itertools.count():
-                self.initial_block_pos.append(
-                    np.copy(self.block_pos(blocknum=i)))
-                joint_offset = self.sim.get_jnt_qposadr(
-                    f'block{i}joint') + offset
-                self._block_qposadrs.append(joint_offset)
-                self.n_blocks = i + 1
-        except MujocoError:
-            pass
+        # for i in itertools.count():
+        #     if self._block_name + str(i) not in self.model.body_names:
+        #         break
+        #     self.initial_block_pos.append(
+        #         np.copy(self.block_pos(blocknum=i)))
+        #     # joint_offset = self.model.get_joint_qpos_addr(
+        #     #     f'block{i}joint') + offset
+        #     # self._block_qposadrs.append(joint_offset)
+        #     self.n_blocks = i + 1
 
         # goal space
         self._min_lift_height = min_lift_height
@@ -120,58 +119,58 @@ class HSREnv:
             self.goal_space.low[too_close] -= epsilon
         self.goal = None
 
-        def using_joint(name):
-            return self.sim.contains(ObjType.JOINT, name)
-
-        self._base_joints = list(filter(using_joint, ['slide_x', 'slide_y']))
-        if obs_type == 'openai':
-            raw_obs_space = spaces.Box(
-                low=-np.inf,
-                high=np.inf,
-                shape=(25, ),
-                dtype=np.float32,
-            )
-        else:
-            raw_obs_space = spaces.Box(
-                low=-np.inf,
-                high=np.inf,
-                shape=(self.sim.nq + len(self._base_joints), ),
-                dtype=np.float32,
-            )
-        self.observation_space = spaces.Tuple(
-            Observation(observation=raw_obs_space, goal=self.goal_space))
-
-        # joint space
-        all_joints = [
-            'slide_x', 'slide_y', 'arm_lift_joint', 'arm_flex_joint',
-            'wrist_roll_joint', 'hand_l_proximal_joint'
-        ]
-        self._joints = list(filter(using_joint, all_joints))
-        jnt_range_idx = [
-            self.sim.name2id(ObjType.JOINT, j) for j in self._joints
-        ]
-        self._joint_space = spaces.Box(
-            *map(np.array, zip(*self.sim.jnt_range[jnt_range_idx])),
-            dtype=np.float32)
-        self._joint_qposadrs = [
-            self.sim.get_jnt_qposadr(j) for j in self._joints
-        ]
-        self.randomize_pose = randomize_pose
-
-        # action space
-        self.action_space = spaces.Box(
-            low=self.sim.actuator_ctrlrange[:-1, 0],
-            high=self.sim.actuator_ctrlrange[:-1, 1],
-            dtype=np.float32)
+        # def using_joint(name):
+        #     return name in self.model.joint_names
+        #
+        # self._base_joints = list(filter(using_joint, ['slide_x', 'slide_y']))
+        # if obs_type == 'openai':
+        #     raw_obs_space = spaces.Box(
+        #         low=-np.inf,
+        #         high=np.inf,
+        #         shape=(25, ),
+        #         dtype=np.float32,
+        #     )
+        # else:
+        #     raw_obs_space = spaces.Box(
+        #         low=-np.inf,
+        #         high=np.inf,
+        #         shape=(self.model.nq + len(self._base_joints), ),
+        #         dtype=np.float32,
+        #     )
+        # self.observation_space = spaces.Tuple(
+        #     Observation(observation=raw_obs_space, goal=self.goal_space))
+        #
+        # # joint space
+        # all_joints = [
+        #     'slide_x', 'slide_y', 'arm_lift_joint', 'arm_flex_joint',
+        #     'wrist_roll_joint', 'hand_l_proximal_joint'
+        # ]
+        # self._joints = list(filter(using_joint, all_joints))
+        # jnt_range_idx = [
+        #     self.model.joint_name2id(j) for j in self._joints
+        # ]
+        # self._joint_space = spaces.Box(
+        #     *map(np.array, zip(*self.model.jnt_range[jnt_range_idx])),
+        #     dtype=np.float32)
+        # self._joint_qposadrs = [
+        #     self.model.get_joint_qpos_addr(j) for j in self._joints
+        # ]
+        # self.randomize_pose = randomize_pose
+        #
+        # # action space
+        # self.action_space = spaces.Box(
+        #     low=self.model.actuator_ctrlrange[:-1, 0],
+        #     high=self.model.actuator_ctrlrange[:-1, 1],
+        #     dtype=np.float32)
 
     def seed(self, seed=None):
         np.random.seed(seed)
 
-    def render(self, mode=None, camera_name=None, labels=None):
-        if mode == 'rgb_array':
-            return self.sim.render_offscreen(
-                camera_name=camera_name, labels=labels)
-        return self.sim.render(camera_name=camera_name, labels=labels)
+    # def render(self, mode=None):
+    #     if mode == 'rgb_array':
+    #         return self.sim.render_offscreen(
+    #             camera_name=camera_name, labels=labels)
+    #     return self.sim.render(camera_name=camera_name, labels=labels)
 
     def image(self, camera_name='rgb'):
         return self.sim.render_offscreen(camera_name)
@@ -227,9 +226,9 @@ class HSREnv:
             ])
         else:
             base_qvels = [
-                self.sim.get_joint_qvel(j) for j in self._base_joints
+                self.sim.data.get_joint_qvel(j) for j in self._base_joints
             ]
-            obs = np.concatenate([self.sim.qpos, base_qvels])
+            obs = np.concatenate([self.sim.data.qpos, base_qvels])
         observation = Observation(observation=obs, goal=self.goal)
         # assert self.observation_space.contains(observation)
         return observation
@@ -242,7 +241,7 @@ class HSREnv:
 
         # insert mirrored values at the appropriate indexes
         mirrored_index, mirroring_index = [
-            self.sim.name2id(ObjType.ACTUATOR, n)
+            self.model.actuator_name2id(n)
             for n in [mirrored, mirroring]
         ]
         # necessary because np.insert can't append multiple values to end:
@@ -250,11 +249,11 @@ class HSREnv:
         action = np.insert(action, mirroring_index, action[mirrored_index])
 
         self._time_steps += 1
-        assert np.shape(action) == np.shape(self.sim.ctrl)
+        assert np.shape(action) == np.shape(self.sim.data.ctrl)
 
-        assert np.shape(action) == np.shape(self.sim.ctrl)
+        assert np.shape(action) == np.shape(self.sim.data.ctrl)
         for i in range(self.steps_per_action):
-            self.sim.ctrl[:] = action
+            self.sim.data.ctrl[:] = action
             self.sim.step()
             if self.render_freq is not None and i % self.render_freq == 0:
                 self.render()
@@ -279,22 +278,15 @@ class HSREnv:
         qpos[self.sim.get_jnt_qposadr('hand_r_proximal_joint')] = qpos[
             self.sim.get_jnt_qposadr('hand_l_proximal_joint')]
 
-    def reset_sim(self, qpos: np.ndarray):
-        assert qpos.shape == (self.sim.nq, )
-        self.initial_qpos = qpos
-        self.sim.qpos[:] = qpos.copy()
-        self.sim.qvel[:] = 0
-        self.sim.forward()
-
     @contextmanager
-    def get_initial_qpos(self):
-        qpos = np.copy(self.initial_qpos)
-        yield qpos
-        self.reset_sim(qpos)
+    def get_initial_state(self):
+        initial_state = copy.deepcopy(self.initial_state)
+        yield initial_state
+        self.sim.set_state(initial_state)
 
     def reset(self):
         if self.no_random_reset:
-            with self.get_initial_qpos() as qpos:
+            with self.get_initial_state() as qpos:
                 for i, adrs in enumerate(self._block_qposadrs):
 
                     # if block out of bounds
@@ -304,7 +296,7 @@ class HSREnv:
 
         else:
             self.sim.reset()  # restore original qpos
-            with self.get_initial_qpos() as qpos:
+            with self.get_initial_state() as qpos:
                 if self.randomize_pose:
                     # randomize joint angles
                     qpos[self._joint_qposadrs] = self._joint_space.sample()
@@ -341,7 +333,7 @@ class HSREnv:
         return self.block_pos()
 
     def block_pos(self, blocknum=0):
-        return self.sim.get_body_xpos(self._block_name + str(blocknum))
+        return self.sim.data.get_body_xpos(self._block_name + str(blocknum))
 
     def gripper_pos(self):
         finger1, finger2 = [
@@ -381,7 +373,7 @@ class HSREnv:
 
     def set_goal(self, goal: np.ndarray):
         # assert self.goal_space.contains(goal)
-        self.sim.mocap_pos[:] = goal
+        self.sim.data.mocap_pos[:] = goal
         self.goal = goal
 
 
