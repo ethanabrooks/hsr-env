@@ -12,3 +12,4 @@ __pycache__
 dist/
 build/
 hsr_env.egg-info
+MUJOCO_LOG.TXT
