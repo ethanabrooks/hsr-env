@@ -3,7 +3,7 @@ import mujoco_py
 import numpy as np
 
 import hsr
-from ppo.main import add_hsr_args
+from hsr.util import add_env_args
 from rl_utils import argparse, hierarchical_parse_args, space_to_size
 
 
@@ -48,8 +48,8 @@ class ControlHSREnv(hsr.HSREnv):
     def control_agent(self):
         action = np.zeros(space_to_size(self.action_space))
         action_scale = np.ones_like(action)
-        action_scale[[0, 1]] = .1
-        action[3] = 100
+        # action_scale[[0, 1]] = .1
+        # action[3] = 100
         if self.viewer and self.viewer.moving:
             print('delta =', self.viewer.delta)
         if self.viewer and self.viewer.moving and self.viewer.delta:
@@ -63,7 +63,7 @@ class ControlHSREnv(hsr.HSREnv):
         return t
 
 
-def main(max_episode_steps, env_args):
+def main(env_args):
     env = ControlHSREnv(**env_args)
     done = False
 
@@ -78,5 +78,9 @@ def main(max_episode_steps, env_args):
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
-    add_hsr_args(parser)
-    hsr.util.env_wrapper(main)(**hierarchical_parse_args(parser))
+    wrapper_parser = parser.add_argument_group('wrapper_args')
+    env_parser = parser.add_argument_group('env_args')
+    hsr.util.add_env_args(env_parser)
+    hsr.util.add_wrapper_args(wrapper_parser)
+    args = hierarchical_parse_args(parser)
+    main_ = hsr.util.env_wrapper(main)(**args)

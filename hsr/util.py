@@ -9,35 +9,35 @@ import xml.etree.ElementTree as ET
 
 from gym.spaces import Box
 
-from hsr.env import get_xml_filepath
+from hsr.env import get_xml_filepath, GoalSpec
 from rl_utils import parse_space, parse_vector
 
 
 def add_env_args(parser):
-    parser.add_argument(
-        '--image-dims',
-        type=parse_vector(length=2, delim=','),
-        default='800,800')
-    parser.add_argument('--block-space', type=parse_space(dim=4))
-    parser.add_argument('--min-lift-height', type=float, default=None)
+    # parser.add_argument(
+    #     '--image-dims',
+    #     type=parse_vector(length=2, delim=','),
+    #     default='800,800')
+    # parser.add_argument('--min-lift-height', type=float, default=None)
+    # parser.add_argument('--record-separate-episodes', action='store_true')
     parser.add_argument('--obs-type', type=str, default=None)
     parser.add_argument('--render', action='store_true')
     parser.add_argument('--render-freq', type=int, default=None)
     parser.add_argument('--record', action='store_true')
-    parser.add_argument('--record-separate-episodes', action='store_true')
     parser.add_argument('--record-freq', type=int, default=None)
     parser.add_argument('--record-path', type=Path, default=None)
     parser.add_argument('--steps-per-action', type=int, required=True)
 
 
 def add_wrapper_args(parser):
+    parser.add_argument('--block-space', type=parse_space(dim=4))
+    parser.add_argument(
+        '--goal-space', type=parse_space(dim=3), required=True)  # TODO
     parser.add_argument('--xml-file', type=Path, default='models/world.xml')
     parser.add_argument('--set-xml', type=xml_setter, action='append')
     parser.add_argument('--use-dof', type=str, action='append', default=[])
     parser.add_argument('--geofence', type=float, required=True)
     parser.add_argument('--n-blocks', type=int, default=0)
-    parser.add_argument(
-        '--goal-space', type=parse_space(dim=3), required=True)  # TODO
 
 
 def xml_setter(arg: str):
@@ -53,7 +53,7 @@ def xml_setter(arg: str):
 def env_wrapper(func):
     @wraps(func)
     def _wrapper(set_xml, use_dof, n_blocks, goal_space, xml_file, geofence,
-                 env_args: dict, **kwargs):
+                 env_args: dict, block_space: dict, **kwargs):
         xml_filepath = get_xml_filepath(xml_file)
         if set_xml is None:
             set_xml = []
@@ -68,9 +68,9 @@ def env_wrapper(func):
                 goal_space=goal_space,
                 xml_filepath=xml_filepath) as temp_path:
             env_args.update(
-                geofence=geofence,
+                goals=[GoalSpec(a=block_space, b=goal_space, distance=geofence)],
                 xml_file=temp_path,
-                goal_space=goal_space,
+                starts={},
             )
 
             return func(env_args=env_args, **kwargs)
@@ -173,6 +173,8 @@ def mutate_xml(changes: List[XMLSetter], dofs: List[str], goal_space: Box,
             mutate_tree(tree)
             tree.write(f)
             f.flush()
+        with Path(temp[xml_filepath].name).open() as f:
+            print(f.read())
 
         yield Path(temp[xml_filepath].name)
     finally:

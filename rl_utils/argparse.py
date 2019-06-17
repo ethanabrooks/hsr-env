@@ -61,12 +61,13 @@ def make_box(*tuples: Tuple[float, float]):
 
 def parse_space(dim: int):
     def _parse_space(arg: str):
-        regex = re.compile('\((-?[\.\d]+),(-?[\.\d]+)\)')
+        pattern = r'\((-?[\.\d]+),(-?[\.\d]+)\)'
+        regex = re.compile(pattern)
         matches = regex.findall(arg)
         if len(matches) != dim:
             raise argparse.ArgumentTypeError(
                 f'Arg {arg} must have {dim} substrings '
-                f'matching pattern {regex}.')
+                f'matching pattern {regex.pattern}.')
         return make_box(*matches)
 
     return _parse_space
@@ -102,6 +103,7 @@ try:
         tanh=tf.tanh,
         none=None,
     )
+
 
     def parse_activation(arg: str):
         return ACTIVATIONS[arg]
