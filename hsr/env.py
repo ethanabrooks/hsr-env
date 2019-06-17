@@ -1,12 +1,14 @@
 # stdlib
 from collections import namedtuple
 from pathlib import Path
-from typing import List, Dict
+from typing import Dict, List
 
-import numpy as np
 # third party
 from gym import Space
 from gym.spaces import Box
+from gym.utils import closer
+from gym.wrappers.monitoring.video_recorder import VideoRecorder
+import numpy as np
 
 from hsr.mujoco_env import MujocoEnv
 
@@ -19,17 +21,19 @@ GoalSpec = namedtuple('GoalSpec', 'a b distance')
 
 
 class HSREnv(MujocoEnv):
-    def __init__(self,
-                 xml_file: Path,
-                 goals: List[GoalSpec],
-                 starts: Dict[str, Box],
-                 steps_per_action: int = 300,
-                 obs_type: str = None,
-                 render: bool = False,
-                 record: bool = False,
-                 record_freq: int = None,
-                 render_freq: int = None,
-                 ):
+    def __init__(
+            self,
+            xml_file: Path,
+            goals: List[GoalSpec],
+            starts: Dict[str, Box],
+            steps_per_action: int = 300,
+            obs_type: str = None,
+            render: bool = False,
+            record: bool = False,
+            record_freq: int = None,
+            render_freq: int = None,
+            record_path: Path = None,
+    ):
         self.starts = starts
         self.goals_specs = goals
         self.goals = None
@@ -44,14 +48,23 @@ class HSREnv(MujocoEnv):
         self.reward_range = -np.inf, np.inf
         self.spec = None
 
-        self._record = record or record_freq
-        self._render = render or render_freq
-        self.render_freq = render_freq or 20
+        self.video_recorder = None
+        self._record = any([record, record_path, record_freq])
+        self._render = any([render, render_freq])
         self.record_freq = record_freq or 20
+        self.render_freq = render_freq or 20
+        record_path = record_path or '/tmp/training-video'
         self.steps_per_action = steps_per_action
-        self._block_name = 'block'
-        self._finger_names = ['hand_l_distal_link',
-                              'hand_r_distal_link']
+        self._block_name = 'block0'
+        self._finger_names = ['hand_l_distal_link', 'hand_r_distal_link']
+
+        if self._record:
+            self.video_recorder = VideoRecorder(
+                env=self,
+                base_path=record_path,
+                enabled=True,
+            )
+
         super().__init__(str(xml_file), frame_skip=self.record_freq)
         self.initial_state = self.sim.get_state()
 
@@ -75,11 +88,11 @@ class HSREnv(MujocoEnv):
             object_rel_pos = object_pos - grip_pos
             object_velp -= grip_velp
             gripper_state = np.array([
-                self.sim.get_joint_qpos(f'hand_{x}_proximal_joint')
+                self.model.get_joint_qpos_addr(f'hand_{x}_proximal_joint')
                 for x in 'lr'
             ])
             qvels = np.array([
-                self.sim.get_joint_qvel(f'hand_{x}_proximal_joint')
+                self.model.get_joint_qpos_addr(f'hand_{x}_proximal_joint')
                 for x in 'lr'
             ])
             gripper_vel = dt * .5 * qvels
@@ -99,29 +112,51 @@ class HSREnv(MujocoEnv):
             obs = np.concatenate([self.sim.data.qpos, self.sim.data.qvel])
         return obs
 
-    def step(self, action):
+    def step(self, action, steps=None):
         self.sim.data.ctrl[:] = action
-        for i in range(self.steps_per_action):
+        steps = steps or self.steps_per_action
+        for i in range(steps):
             if self._render and i % self.render_freq == 0:
                 self.render()
             if self._record and i % self.record_freq == 0:
-                self.record()
+                self.video_recorder.capture_frame()
             self.sim.step()
+            done = success = False
+            if self.goals:
+                done = success = all([self.in_range(*s) for s in self.goals])
+            if done:
+                if self._record:
+                    for _ in range(50):
+                        self.video_recorder.capture_frame()
+                break
         self._time_steps += 1
-        done = success = all([self.in_range(*s) for s in self.goals])
         reward = float(success)
         info = {'log count': {'success': success and self._time_steps > 0}}
         return self._get_observation(), reward, done, info
 
     def in_range(self, a, b, distance):
-        pos1 = a if isinstance(a, np.ndarray) else self.sim.data.get_body_xpos(a)
-        pos2 = b if isinstance(b, np.ndarray) else self.sim.data.get_body_xpos(b)
-        return distance_between(pos1, pos2) < distance
+        def parse(x):
+            if callable(x):
+                return x()
+            if isinstance(x, np.ndarray):
+                return x
+            if isinstance(x, str):
+                return self.sim.data.get_body_xpos(x)
+            raise RuntimeError(f"{x} must be function, np.ndarray, or string")
 
-    def reset(self):
-        self._time_steps = 0
-        self.sim.reset()
+        return distance_between(parse(a), parse(b)) < distance
+
+    def new_state(self):
         state = self.sim.get_state()
+        for joint, space in self.starts.items():
+            assert isinstance(space, Space)
+            start, end = self.model.get_joint_qpos_addr(joint)
+            state.qpos[start:end] = space.sample()
+
+        return state
+
+    def reset_model(self):
+        self._time_steps = 0
 
         def sample_from_spaces(a, b, distance):
             if isinstance(a, Space):
@@ -131,14 +166,12 @@ class HSREnv(MujocoEnv):
             return GoalSpec(a, b, distance)
 
         self.goals = [sample_from_spaces(*s) for s in self.goals_specs]
-        self.sim.data.mocap_pos[:] = np.concatenate(
-            [x for s in self.goals for x in [s.a, s.b]
-             if isinstance(x, np.ndarray)])
+        self.sim.data.mocap_pos[:] = np.concatenate([
+            x for s in self.goals for x in [s.a, s.b]
+            if isinstance(x, np.ndarray)
+        ])
 
-        for joint, space in self.starts.items():
-            assert isinstance(space, Space)
-            start, end = self.model.get_joint_qpos_addr(joint)
-            state.qpos[start: end] = space.sample()
+        state = self.new_state()
         self.sim.set_state(state)
         self.sim.forward()
         return self._get_observation()
@@ -148,21 +181,26 @@ class HSREnv(MujocoEnv):
 
     def gripper_pos(self):
         finger1, finger2 = [
-            self.sim.get_body_xpos(name) for name in self._finger_names
+            self.sim.data.get_body_xpos(name) for name in self._finger_names
         ]
         return (finger1 + finger2) / 2.
 
-    # def reset_recorder(self, record_path: Path):
-    #     record_path.mkdir(parents=True, exist_ok=True)
-    #     print(f'Recording video to {record_path}.mp4')
-    #     video_recorder = VideoRecorder(
-    #         env=self,
-    #         base_path=str(record_path),
-    #         metadata={'episode': self._episode},
-    #         enabled=True,
-    #     )
-    #     closer.Closer().register(video_recorder)
-    #     return video_recorder
+    def close(self):
+        """Flush all monitor data to disk and close any open rending windows."""
+        super().close()
+        if self.video_recorder is not None:
+            self.video_recorder.close()
+
+    def reset_recorder(self, record_path: Path):
+        record_path.mkdir(parents=True, exist_ok=True)
+        print(f'Recording video to {record_path}.mp4')
+        video_recorder = VideoRecorder(
+            env=self,
+            base_path=str(record_path),
+            enabled=True,
+        )
+        closer.Closer().register(video_recorder)
+        return video_recorder
 
     def __enter__(self):
         return self

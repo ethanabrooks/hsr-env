@@ -88,10 +88,10 @@
             <!--<geom type="box" size=".17 .001  .01" pos="0 -.2667 .01" class="clear"/>-->
         </body>
 
-        <body name="block" pos="0 0 .418">
-          <geom name="block" type="box" mass="1" size=".05 .025 .017" rgba=".8 .1 .1 1" condim="6" solimp="0.99 0.99 0.01" solref="0.01 1"/>
-          <freejoint name='blockjoint'/>
-        </body>
+<!--        <body name="block" pos="0 0 .418">-->
+<!--          <geom name="block" type="box" mass="1" size=".05 .025 .017" rgba=".8 .1 .1 1" condim="6" solimp="0.99 0.99 0.01" solref="0.01 1"/>-->
+<!--          <freejoint name='blockjoint'/>-->
+<!--        </body>-->
 
         <!--<body name="block2" pos="0 0 .44">-->
           <!--<geom type="box" size=".0317 .0317 .0234" rgba=".1 .8 .1 1" condim="4" solimp="0.99 0.99 0.01" solref="0.01 1"/>-->
