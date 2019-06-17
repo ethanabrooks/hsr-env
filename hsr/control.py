@@ -3,7 +3,6 @@ import mujoco_py
 import numpy as np
 
 import hsr
-from ppo.env_adapter import HSREnv
 from ppo.main import add_hsr_args
 from rl_utils import argparse, hierarchical_parse_args, space_to_size
 
@@ -42,7 +41,7 @@ class ControlViewer(mujoco_py.MjViewer):
         super()._cursor_pos_callback(window, xpos, ypos)
 
 
-class ControlHSREnv(HSREnv):
+class ControlHSREnv(hsr.HSREnv):
     def viewer_setup(self):
         self.viewer = ControlViewer(self.sim)
 
