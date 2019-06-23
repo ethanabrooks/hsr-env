@@ -68,6 +68,8 @@ class HSREnv(MujocoEnv):
         super().__init__(str(xml_file), frame_skip=self.record_freq)
         self.initial_state = self.sim.get_state()
 
+        
+
     def _get_observation(self):
         if self._obs_type == 'openai':
 

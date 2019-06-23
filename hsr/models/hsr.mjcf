@@ -1,4 +1,7 @@
 <mujoco model="hsr">
+
+  
+   
     <body name="base_link" pos="-.46 -.081 0">
         <!--<site name="touchsensor_site" size="0.25 .5" pos="0 0 .5" type="cylinder" rgba="1 0 0 0"/>-->
         <joint axis="1 0 0" damping="2200" name="slide_x" pos="0 0 0" type="slide" limited="true" range="-.12 .22"/>
@@ -134,14 +137,14 @@
                 <body name="arm_roll_link" pos="0.005 0 0.345">
                     <inertial pos="-0.006927 0.002039 -0.064837" quat="0.704471 0.707171 -0.0444888 0.0406182"
                               mass="0.247936" diaginertia="0.00426928 0.00411787 0.00078077"/>
-                    <!--<joint name="arm_roll_joint" pos="0 0 0" axis="0 0 1" limited="true" range="-2.09 3.84" />-->
+                    <joint name="arm_roll_joint" pos="0 0 0" axis="0 0 1" limited="true" range="-2.09 3.84" />
                     <geom type="mesh" contype="0" conaffinity="0" group="1" mesh="arm_roll_light"/>
                     <geom type="mesh" mesh="arm_roll"/>
                     <body name="wrist_flex_link" pos="0 0 0"
                           quat="0.4 0 .6 0">
                         <inertial pos="0.000131 -0.003929 0.00217" quat="0.672298 0.740248 0.0055614 0.00418043"
                                   mass="0.681225" diaginertia="7.43604e-05 6.49274e-05 3.81796e-05"/>
-                        <!--<joint name="wrist_flex_joint" pos="0 0 0" axis="0 -1 0" limited="true" range="-1.92 1.22" />-->
+                        <joint name="wrist_flex_joint" pos="0 0 0" axis="0 -1 0" limited="true" range="-1.92 1.22" />
                         <geom type="mesh" contype="0" conaffinity="0" group="1" rgba="0.33 0.33 0.33 1"
                               mesh="wrist_flex"/>
                         <geom size="0.017 0.01" pos="0 0 0.04" type="cylinder" contype="0" conaffinity="0" group="1"
@@ -249,4 +252,5 @@
             </body>
         </body>
     </body>
+   
 </mujoco>

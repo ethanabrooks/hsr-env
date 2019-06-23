@@ -4,6 +4,7 @@ from functools import wraps
 from pathlib import Path
 import re
 import tempfile
+import pdb
 from typing import List
 import xml.etree.ElementTree as ET
 
@@ -51,6 +52,7 @@ def xml_setter(arg: str):
 
 
 def env_wrapper(func):
+    
     @wraps(func)
     def _wrapper(set_xml, use_dof, n_blocks, goal_space, xml_file, geofence,
                  env_args: dict, block_space: dict, **kwargs):
@@ -58,9 +60,19 @@ def env_wrapper(func):
         if set_xml is None:
             set_xml = []
         site_size = ' '.join([str(geofence)] * 3)
+
+        
         path = Path('worldbody', 'body[@name="goal"]', 'site[@name="goal"]',
                     'size')
         set_xml += [XMLSetter(path=f'./{path}', value=site_size)]
+
+        #pdb.set_trace()
+        #todoo
+        #path = Path('worldbody', 'body[@name="mocap"]', 'pos')
+        #set_xml += [XMLSetter(path=f'./{path}', value=site_size)]
+        
+
+        #########
         with mutate_xml(
                 changes=set_xml,
                 dofs=use_dof,
@@ -72,12 +84,13 @@ def env_wrapper(func):
                 xml_file=temp_path,
                 starts={},
             )
+	
 
             return func(env_args=env_args, **kwargs)
 
     def new_function(wrapper_args, **kwargs):
         return _wrapper(**wrapper_args, **kwargs)
-
+    
     return new_function
 
 
@@ -102,6 +115,10 @@ def mutate_xml(changes: List[XMLSetter], dofs: List[str], goal_space: Box,
             "1 1 0 1",
             "1 1 1 1",
         ]
+	
+        
+
+        
 
         if worldbody:
             for i in range(n_blocks):
@@ -158,6 +175,7 @@ def mutate_xml(changes: List[XMLSetter], dofs: List[str], goal_space: Box,
 
         return tree
 
+    
     included_files = [
         rel_to_abs(e.get('file'))
         for e in ET.parse(xml_filepath).findall('*/include')
@@ -167,6 +185,7 @@ def mutate_xml(changes: List[XMLSetter], dofs: List[str], goal_space: Box,
         path: tempfile.NamedTemporaryFile(suffix='.xml')
         for path in (included_files + [xml_filepath])
     }
+    
     try:
         for path, f in temp.items():
             tree = ET.parse(path)
@@ -179,4 +198,5 @@ def mutate_xml(changes: List[XMLSetter], dofs: List[str], goal_space: Box,
         yield Path(temp[xml_filepath].name)
     finally:
         for f in temp.values():
-            f.close()
+             f.close()
+             
