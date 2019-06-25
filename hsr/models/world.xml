@@ -88,7 +88,7 @@
 
 
         <body name="pan" pos="0 0 .4">
-            <geom type="box" size=".17 .2667 .005" class="box"/>
+            <geom type="box" size=".17 .2667 .005" class="box" solimp=".9999 .9999 0.0001" solref="0.0001 1.3"/>
             <!--<geom type="box" size=".001  .2667 .01" pos=".17 0  .01"  class="clear"/>-->
             <!--<geom type="box" size=".001  .2667 .01" pos="-.17 0 .01" class="clear"/>-->
             <!--<geom type="box" size=".17 .001  .01" pos="0 .2667  .01"  class="clear"/>-->
@@ -149,7 +149,7 @@
         <exclude body1="hand_r_mimic_distal_link" body2="hand_r_distal_link"/>
     </contact>
      <equality>
-        <connect anchor="0 0 0" body1="hand_palm_link" body2="mocap" solimp=".001 .001 0.001" solref="0.01 1"/>
+       <connect anchor="0 0 0" body1="hand_palm_link" body2="mocap" solimp=".87 .87 0.001" solref="0.01 1"/>
         
     </equality>
 </mujoco>

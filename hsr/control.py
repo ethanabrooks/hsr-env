@@ -8,9 +8,11 @@ from operator import add
 
 
 
+
 #KEYBOARD ROBOT CONTROL
 ROBOT_SPEED = 0.003
 mocap_pos = [-0.25955956,  0.00525669,  0.78973095] #initial position of hand_palm_link
+claws_open = 0 # Controls the claws. Open --> 1, Closed --> 0
 
 class ControlViewer(mujoco_py.MjViewer):
     def __init__(self, sim):
@@ -35,6 +37,7 @@ class ControlViewer(mujoco_py.MjViewer):
         ]
 
         global mocap_pos
+        global claws_open
 
         if key in keys:
             self.active_joint = keys.index(key)
@@ -54,6 +57,11 @@ class ControlViewer(mujoco_py.MjViewer):
             mocap_pos = list( map(add, mocap_pos, [0.00, 0.00, ROBOT_SPEED]) )
         elif key == glfw.KEY_J:   
             mocap_pos = list( map(add, mocap_pos, [0.00, 0.00 , -ROBOT_SPEED]) ) 
+        elif key == glfw.KEY_P:   
+            claws_open = 1
+        elif key == glfw.KEY_LEFT_BRACKET:   
+            claws_open = 0
+        
        
        
 
@@ -74,9 +82,14 @@ class ControlHSREnv(hsr.HSREnv):
 
         #mocap_pos is updated by the keyboard event handler
         self.sim.data.mocap_pos[1] = mocap_pos
+
+
+        action = [0, claws_open, claws_open]
         
-        action = np.zeros(space_to_size(self.action_space))
+        #action = np.zeros(space_to_size(self.action_space))
         action_scale = np.ones_like(action)
+
+       
  
         if self.viewer and self.viewer.moving:
             print('delta =', self.viewer.delta)
