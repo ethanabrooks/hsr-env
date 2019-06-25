@@ -149,7 +149,6 @@
         <exclude body1="hand_r_mimic_distal_link" body2="hand_r_distal_link"/>
     </contact>
      <equality>
-       <connect anchor="0 0 0" body1="hand_palm_link" body2="mocap" solimp=".87 .87 0.001" solref="0.01 1"/>
-        
+       <connect anchor="0 0 0" body1="hand_palm_link" body2="mocap" solimp=".87 .87 0.001" solref="0.01 1"/>        
     </equality>
 </mujoco>
