@@ -4,10 +4,13 @@ import numpy as np
 import hsr
 from hsr.util import add_env_args
 from rl_utils import argparse, hierarchical_parse_args, space_to_size
-from pynput.keyboard import Key, Listener
 from operator import add
 
-ROBOT_SPEED = 0.005
+
+
+#KEYBOARD ROBOT CONTROL
+ROBOT_SPEED = 0.003
+mocap_pos = [-0.25955956,  0.00525669,  0.78973095] #initial position of hand_palm_link
 
 class ControlViewer(mujoco_py.MjViewer):
     def __init__(self, sim):
@@ -30,12 +33,30 @@ class ControlViewer(mujoco_py.MjViewer):
             glfw.KEY_8,
             glfw.KEY_9,
         ]
+
+        global mocap_pos
+
         if key in keys:
             self.active_joint = keys.index(key)
             print(self.sim.model.joint_names[self.active_joint])
         elif key == glfw.KEY_LEFT_CONTROL:
             self.moving = not self.moving
             self.delta = None
+        elif key == glfw.KEY_O:
+            mocap_pos = list( map(add, mocap_pos, [ROBOT_SPEED, 0.00, 0.00]) )
+        elif key == glfw.KEY_L: 
+            mocap_pos = list( map(add, mocap_pos, [-ROBOT_SPEED, 0.00, 0.00]) )  
+        elif key == glfw.KEY_K:  
+            mocap_pos = list( map(add, mocap_pos, [0.00, ROBOT_SPEED, 0.00]) )
+        elif key == glfw.KEY_SEMICOLON:  
+            mocap_pos = list( map(add, mocap_pos, [0.00, -ROBOT_SPEED, 0.00]) )
+        elif key == glfw.KEY_U:  
+            mocap_pos = list( map(add, mocap_pos, [0.00, 0.00, ROBOT_SPEED]) )
+        elif key == glfw.KEY_J:   
+            mocap_pos = list( map(add, mocap_pos, [0.00, 0.00 , -ROBOT_SPEED]) ) 
+       
+       
+
 
     def _cursor_pos_callback(self, window, xpos, ypos):
         if self.moving:
@@ -53,7 +74,7 @@ class ControlHSREnv(hsr.HSREnv):
 
         #mocap_pos is updated by the keyboard event handler
         self.sim.data.mocap_pos[1] = mocap_pos
-
+        
         action = np.zeros(space_to_size(self.action_space))
         action_scale = np.ones_like(action)
  
@@ -83,42 +104,6 @@ def main(env_args):
         if done:
             env.reset()
         done = env.control_agent()
-
-
-#KEYBOARD ROBOT CONTROL
-mocap_pos = [-0.25955956,  0.00525669,  0.78973095] #initial position of hand_palm_link
-
-        
-def on_press(key):
-    try:
-        global mocap_pos
-        
-        if key.char == 'o': 
-            mocap_pos = list( map(add, mocap_pos, [ROBOT_SPEED, 0.00, 0.00]) )
-        elif key.char == 'l': 
-            mocap_pos = list( map(add, mocap_pos, [-ROBOT_SPEED, 0.00, 0.00]) )  
-        elif key.char == 'k': 
-            mocap_pos = list( map(add, mocap_pos, [0.00, ROBOT_SPEED, 0.00]) )
-        elif key.char == ';': 
-            mocap_pos = list( map(add, mocap_pos, [0.00, -ROBOT_SPEED, 0.00]) )
-        elif key.char == 'u': 
-            mocap_pos = list( map(add, mocap_pos, [0.00, 0.00, ROBOT_SPEED]) )
-        elif key.char == 'j':  
-            mocap_pos = list( map(add, mocap_pos, [0.00, 0.00 , -ROBOT_SPEED]) )        
-        
-    except AttributeError:
-         print('special key {0} pressed'.format(
-            key))
-
-def on_release(key):
-
-    if key == Key.esc:
-        return False
-
-listener = Listener(
-    on_press=on_press,
-    on_release=on_release)
-listener.start()
 
 
 if __name__ == '__main__':
