@@ -7,8 +7,7 @@ from gym import spaces
 import numpy as np
 
 
-def hierarchical_parse_args(parser: argparse.ArgumentParser,
-                            include_positional=False):
+def hierarchical_parse_args(parser: argparse.ArgumentParser, include_positional=False):
     """
     :return:
     {
@@ -22,25 +21,25 @@ def hierarchical_parse_args(parser: argparse.ArgumentParser,
 
     def key_value_pairs(group):
         for action in group._group_actions:
-            if action.dest != 'help':
+            if action.dest != "help":
                 yield action.dest, getattr(args, action.dest, None)
 
     def get_positionals(groups):
         for group in groups:
-            if group.title == 'positional arguments':
+            if group.title == "positional arguments":
                 for k, v in key_value_pairs(group):
                     yield v
 
     def get_nonpositionals(groups: List[argparse._ArgumentGroup]):
         for group in groups:
-            if group.title != 'positional arguments':
+            if group.title != "positional arguments":
                 children = key_value_pairs(group)
                 descendants = get_nonpositionals(group._action_groups)
                 yield group.title, {**dict(children), **dict(descendants)}
 
     positional = list(get_positionals(parser._action_groups))
     nonpositional = dict(get_nonpositionals(parser._action_groups))
-    optional = nonpositional.pop('optional arguments')
+    optional = nonpositional.pop("optional arguments")
     nonpositional = {**nonpositional, **optional}
     if include_positional:
         return positional, nonpositional
@@ -50,7 +49,7 @@ def hierarchical_parse_args(parser: argparse.ArgumentParser,
 def parse_double(ctx, param, string):
     if string is None:
         return
-    a, b = map(float, string.split(','))
+    a, b = map(float, string.split(","))
     return a, b
 
 
@@ -61,13 +60,14 @@ def make_box(*tuples: Tuple[float, float]):
 
 def parse_space(dim: int):
     def _parse_space(arg: str):
-        pattern = r'\((-?[\.\d]+),(-?[\.\d]+)\)'
+        pattern = r"\((-?[\.\d]+),(-?[\.\d]+)\)"
         regex = re.compile(pattern)
         matches = regex.findall(arg)
         if len(matches) != dim:
             raise argparse.ArgumentTypeError(
-                f'Arg {arg} must have {dim} substrings '
-                f'matching pattern {regex.pattern}.')
+                f"Arg {arg} must have {dim} substrings "
+                f"matching pattern {regex.pattern}."
+            )
         return make_box(*matches)
 
     return _parse_space
@@ -78,8 +78,9 @@ def parse_vector(length: int, delim: str):
         vector = tuple(map(float, arg.split(delim)))
         if len(vector) != length:
             raise argparse.ArgumentError(
-                f'Arg {arg} must include {length} float values'
-                f'delimited by "{delim}".')
+                f"Arg {arg} must include {length} float values"
+                f'delimited by "{delim}".'
+            )
         return vector
 
     return _parse_vector
@@ -104,8 +105,9 @@ try:
         none=None,
     )
 
-
     def parse_activation(arg: str):
         return ACTIVATIONS[arg]
+
+
 except ImportError:
     pass
