@@ -16,41 +16,41 @@
         <body name="base_roll_link" pos="0 0hsr">
             <inertial pos="-0.019482 0.002191 0.071013" quat="-0.163088 0.695987 0.176074 0.676759" mass="10.2394"
                       diaginertia="0.145076 0.0958414 0.0713624"/>
-            <!--<joint name="base_roll_joint" pos="0 0 0" axis="0 0 1" />-->
+            <joint name="base_roll_joint" pos="0 0 0" axis="0 0 1" />
             <body name="base_r_drive_wheel_link" pos="-0.11 -0.133 0.04">
                 <inertial pos="0 0 0" mass="0.2" diaginertia="0.015 0.015 0.015"/>
-                <!--<joint name="base_r_drive_wheel_joint" pos="0 0 0" axis="0 1 0" />-->
+                <joint name="base_r_drive_wheel_joint" pos="0 0 0" axis="0 1 0" />
                 <geom size="0.04 0.015" quat="0.707107 0.707107 0 0" type="cylinder" contype="0" conaffinity="0"
                       group="1" rgba="0.2 0.2 0.2 1"/>
             </body>
             <body name="base_l_drive_wheel_link" pos="-0.11 0.133 0.04">
                 <inertial pos="0 0 0" mass="0.2" diaginertia="0.015 0.015 0.015"/>
-                <!--<joint name="base_l_drive_wheel_joint" pos="0 0 0" axis="0 1 0" />-->
+                <joint name="base_l_drive_wheel_joint" pos="0 0 0" axis="0 1 0" />
                 <geom size="0.04 0.015" quat="0.707107 0.707107 0 0" type="cylinder" contype="0" conaffinity="0"
                       group="1" rgba="0.2 0.2 0.2 1"/>
             </body>
             <body name="base_r_passive_wheel_x_frame" pos="0.1495 -0.055 0.03">
                 <inertial pos="0 0 0" mass="0.2" diaginertia="0.015 0.015 0.015"/>
-                <!--<joint name="base_r_passive_wheel_x_frame_joint" pos="0 0 0" axis="1 0 0" />-->
+                <joint name="base_r_passive_wheel_x_frame_joint" pos="0 0 0" axis="1 0 0" />
                 <body name="base_r_passive_wheel_y_frame" pos="0 0 0">
                     <inertial pos="0 0 0" mass="0.2" diaginertia="0.015 0.015 0.015"/>
-                    <!--<joint name="base_r_passive_wheel_y_frame_joint" pos="0 0 0" axis="0 1 0" />-->
+                    <joint name="base_r_passive_wheel_y_frame_joint" pos="0 0 0" axis="0 1 0" />
                     <body name="base_r_passive_wheel_z_link" pos="0 0 0">
                         <inertial pos="0 0 0" mass="0.2" diaginertia="0.015 0.015 0.015"/>
-                        <!--<joint name="base_r_passive_wheel_z_joint" pos="0 0 0" axis="0 0 1" />-->
+                        <joint name="base_r_passive_wheel_z_joint" pos="0 0 0" axis="0 0 1" />
                         <geom size="0.03" contype="0" conaffinity="0" group="1" rgba="0.2 0.2 0.2 1"/>
                     </body>
                 </body>
             </body>
             <body name="base_l_passive_wheel_x_frame" pos="0.1495 0.055 0.03">
                 <inertial pos="0 0 0" mass="0.2" diaginertia="0.015 0.015 0.015"/>
-                <!--<joint name="base_l_passive_wheel_x_frame_joint" pos="0 0 0" axis="1 0 0" />-->
+                <joint name="base_l_passive_wheel_x_frame_joint" pos="0 0 0" axis="1 0 0" />
                 <body name="base_l_passive_wheel_y_frame" pos="0 0 0">
                     <inertial pos="0 0 0" mass="0.2" diaginertia="0.015 0.015 0.015"/>
-                    <!--<joint name="base_l_passive_wheel_y_frame_joint" pos="0 0 0" axis="0 1 0" />-->
+                    <joint name="base_l_passive_wheel_y_frame_joint" pos="0 0 0" axis="0 1 0" />
                     <body name="base_l_passive_wheel_z_link" pos="0 0 0">
                         <inertial pos="0 0 0" mass="0.2" diaginertia="0.015 0.015 0.015"/>
-                        <!--<joint name="base_l_passive_wheel_z_joint" pos="0 0 0" axis="0 0 1" />-->
+                        <joint name="base_l_passive_wheel_z_joint" pos="0 0 0" axis="0 0 1" />
                         <geom size="0.03" contype="0" conaffinity="0" group="1" rgba="0.2 0.2 0.2 1"/>
                     </body>
                 </body>

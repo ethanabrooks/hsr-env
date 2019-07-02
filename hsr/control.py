@@ -14,7 +14,7 @@ from operator import add
 ROBOT_SPEED = 0.003
 CLAW_ROTATION_SPEED = 0.03
 # Position limits for the MOCAP guiding the robot
-MOCAP_LIMITS = {"bottom": 0.37, "back":-0.295, "front": 0.52, "left": 0.45, "right": -0.45, "up":1.57}
+MOCAP_LIMITS = {"bottom": 0.37, "back": -0.44, "front": 0.75, "left": 0.55, "right": -.55, "up":1.5}
 mocap_pos = [-0.25955956,  0.00525669,  0.78973095] # Initial position of hand_palm_link
 claws_open = 0 # Control for the claws. Open --> 1, Closed --> 0
 claw_rotation_ctrl = 0 # -3.14 --> -90 degrees, 3.14 --> 90 degrees)
@@ -127,9 +127,9 @@ class ControlHSREnv(hsr.HSREnv):
         # mocap_pos global variable is updated by the keyboard event handler
         self.sim.data.mocap_pos[1] = mocap_pos
         
-        action = [0, claw_rotation_ctrl, claws_open, claws_open]
+        action = [0, 0, 0, claw_rotation_ctrl, claws_open, claws_open]
         action_scale = np.ones_like(action)
-       
+     
         
         if self.viewer and self.viewer.moving:
             print('delta =', self.viewer.delta)
