@@ -31,7 +31,7 @@ def add_env_args(parser):
 
 
 def add_wrapper_args(parser):
-    parser.add_argument("--block-space", type=parse_space(dim=3))
+    parser.add_argument("--block-space", type=parse_space(dim=7))
     parser.add_argument("--goal-space", type=parse_space(dim=3), required=True)  # TODO
     parser.add_argument("--xml-file", type=Path, default="models/world.xml")
     parser.add_argument("--set-xml", type=xml_setter, action="append")
@@ -127,10 +127,14 @@ def mutate_xml(
 
         if worldbody:
             for i in range(n_blocks):
-                pos = " ".join(map(str, block_space.sample()))
+                b_space = " ".join(map(str, block_space.sample()))
+                pos = " ".join(b_space.split()[:3])
+                quat = " ".join(b_space.split()[3:7])
                 name = f"block{i}"
+                body = ET.SubElement(worldbody, "body", attrib=dict(name=name, pos=pos,quat=quat))
+                
+               
 
-                body = ET.SubElement(worldbody, "body", attrib=dict(name=name, pos=pos))
                 ET.SubElement(
                     body,
                     "geom",
@@ -140,12 +144,16 @@ def mutate_xml(
                         mass="1",
                         size=".05 .025 .017",
                         rgba=rgba[i],
-                        condim="6",
-                        solimp="0.99 0.99 " "0.01",
+                        condim="4",
+                        solimp="0.99 0.99 0.01",
                         solref="0.01 1",
+                        
+                        
                     ),
                 )
+               
                 ET.SubElement(body, "freejoint", attrib=dict(name=f"block{i}joint"))
+               
 
         for change in changes:
             parent = re.sub("/[^/]*$", "", change.path)

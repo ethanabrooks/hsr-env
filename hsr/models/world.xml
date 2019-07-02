@@ -1,5 +1,5 @@
 <mujoco model="world">
-    <option impratio="2.5" timestep="0.002"/>
+    <option impratio="500" timestep="0.002" tolerance = "1e-10"/>
     <default>
         <default class="wall">
             <geom rgba="2 2 2 1"/>
@@ -35,7 +35,7 @@
     <default class="all">
         <geom condim="4" solimp="0.99 0.99 0.01" solref="0.01 1"/>
     </default>
-    <option cone="elliptic"/>
+    <option cone="elliptic" solver="Newton"/>
     <visual>
         <map znear=".03"/>
         <global offwidth="1000" offheight="1000"/>
@@ -82,8 +82,8 @@
 
 
 	 <!--MOCAP used to guide robot-->
-    <body name="mocap" mocap="true" pos="-0.25955956 0.00525669 0.78973095" axisangle="0 0 1 3.141592">
-            <geom name="mocap" type="box" group="1" size="0.02 0.02 0.02" contype="0" conaffinity="0" rgba=".9 .5 .5 1"/>
+    <body name="mocap" mocap="true" pos="-0.25955956 0.00525669 0.78973095">
+            <geom name="mocap" type="box" group="1" size="0.02 0.02 0.02" contype="0" conaffinity="0" rgba="0 0 0 0"/>
     </body>
 
 
@@ -121,14 +121,14 @@
                   forcelimited="true" forcerange="-15 35"
                   ctrllimited="true" ctrlrange="-1.2 -.5"/>
         <position gear="1" kp="1000" name="wrist_roll_motor" joint="wrist_roll_joint"
-                  forcelimited="true" forcerange="-20 20"
-                  ctrllimited="true" ctrlrange="-1.57 1.57"/>
+                  forcelimited="false" forcerange="-600 600"
+                  ctrllimited="true" ctrlrange="-3.14 3.14"/>
         <position gear="1" kp="1000" name="hand_l_proximal_motor" joint="hand_l_proximal_joint"
-                  forcelimited="true" forcerange="-20 20"
-                  ctrllimited="true" ctrlrange="0 0.349066"/>
+                  forcelimited="true" forcerange="-100 100"
+                  ctrllimited="true" ctrlrange="-1 1"/>
         <position gear="1" kp="1000" name="hand_r_proximal_motor" joint="hand_r_proximal_joint"
-                  forcelimited="true" forcerange="-20 20"
-                  ctrllimited="true" ctrlrange="0 0.349066"/>
+                  forcelimited="true" forcerange="-100 100"
+                  ctrllimited="true" ctrlrange="-1 1"/>
 
     </actuator>
     <contact>
@@ -147,8 +147,16 @@
         <exclude body1="hand_r_proximal_link" body2="hand_r_spring_proximal_link"/>
         <exclude body1="hand_r_spring_proximal_link" body2="hand_r_mimic_distal_link"/>
         <exclude body1="hand_r_mimic_distal_link" body2="hand_r_distal_link"/>
+        <exclude body1="hand_palm_link" body2="arm_roll_link"/>
+        <exclude body1="arm_roll_link" body2="wrist_roll_link"/>
+        
+        
+        
+   
+        
     </contact>
      <equality>
+
        <connect anchor="0 0 0" body1="hand_palm_link" body2="mocap" solimp=".87 .87 0.001" solref="0.01 1"/>        
     </equality>
 </mujoco>

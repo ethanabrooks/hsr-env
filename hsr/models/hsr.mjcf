@@ -74,13 +74,14 @@
                 <camera quat=".5 .5 -.5 -.5" name="rgb" pos="0 0 0"/>
                 <inertial pos="0.001724 -0.001969 -0.028886" quat="0.865343 0.459592 0.192259 -0.0547077"
                           mass="0.571903" diaginertia="0.00102408 0.00077623 0.000589392"/>
-                <!--<joint name="head_pan_joint" pos="0 0 0" axis="0 0 1" limited="false" range="-3.84 1.75" />-->
+                <joint name="head_pan_joint" pos="0 0 0" axis="0 0 1" limited="false" range="-3.84 1.75" />
                 <geom type="mesh" contype="0" conaffinity="0" group="1" mesh="head_pan"/>
                 <geom type="mesh" mesh="head_pan"/>
                 <body name="head_tilt_link" pos="0.02 0 0">
                     <inertial pos="-0.055376 -0.002436 0.117733" quat="0.973833 0.0131235 -0.226864 -0.00327368"
                               mass="2.1238" diaginertia="0.0218915 0.0149823 0.0091862"/>
                     <!--<joint name="head_tilt_joint" pos="0 0 0" axis="0 -1 0" limited="false" range="-1.57 0.52" />-->
+
                     <geom type="mesh" contype="0" conaffinity="0" group="1" mesh="head_upper"/>
                     <geom type="mesh" contype="0" conaffinity="0" group="1" mesh="head_tilt"/>
                     <geom type="mesh" contype="0" conaffinity="0" group="1" mesh="tablet_base"/>
@@ -156,7 +157,7 @@
                                       mass="0.761692" diaginertia="0.000811657 0.000766039 0.000449422"/>
                             <joint name="wrist_roll_joint" pos="0 0 0" axis="0 0 1" damping="15" limited="true" range="-90 90"/>
                                    <!--range="-1.92 3.67" />-->
-                            <geom type="mesh" contype="0" conaffinity="0" group="1" mesh="wrist_roll"/>
+                            <geom type="mesh" contype="0" conaffinity="0" group="1" mesh="wrist_roll" />
                             <geom type="mesh" mesh="wrist_roll"/>
                             <body name="wrist_ft_sensor_frame" pos="0 0 0.0735" quat="0 1 0 0">
                                 <inertial pos="0 0 0.0735" quat="0 1 0 0" mass=".001" diaginertia="0 0 0"/>
