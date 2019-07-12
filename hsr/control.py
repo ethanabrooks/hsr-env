@@ -9,16 +9,6 @@ from operator import add
 
 
 
-#KEYBOARD ROBOT CONTROL
-
-ROBOT_SPEED = 0.003
-CLAW_ROTATION_SPEED = 0.03
-# Position limits for the MOCAP guiding the robot
-MOCAP_LIMITS = {"bottom": 0.37, "back": -0.44, "front": 0.75, "left": 0.55, "right": -.55, "up":1.5}
-mocap_pos = [-0.25955956,  0.00525669,  0.78973095] # Initial position of hand_palm_link
-claws_open = 0 # Control for the claws. Open --> 1, Closed --> 0
-claw_rotation_ctrl = 0 # -3.14 --> -90 degrees, 3.14 --> 90 degrees)
-
 
 class ControlViewer(mujoco_py.MjViewer):
     def __init__(self, sim):
@@ -26,9 +16,12 @@ class ControlViewer(mujoco_py.MjViewer):
         self.active_joint = 0
         self.moving = False
         self.delta = None
+        
 
     def _create_full_overlay(self):
         super()._create_full_overlay()
+        self.add_overlay(
+            0, "Reset", "N")
         self.add_overlay(
             0, "Move forward", "O")
         self.add_overlay(
@@ -49,6 +42,37 @@ class ControlViewer(mujoco_py.MjViewer):
             0, "Turn claws clockwise", "]")
         self.add_overlay(
             0, "Turn claws counter-clockwise", "\\")
+        self.add_overlay(
+            1, "Goal", str(self.env.get_block_color(self.env.goal[0])) +
+             " block to " + self.env.goal[1] + " square")
+        self.add_overlay(
+            1, "Reward", str(self.env.reward))
+        self.add_overlay(
+            1, "Gripper position", str(round(self.env.observation[0][0],2)) + 
+            " " + str(round(self.env.observation[0][1],2)) + " " + 
+            str(round(self.env.observation[0][2],2)))
+        self.add_overlay(
+            1, "Gripper angular position", str(round(self.env.observation[1],2)) + " rad")
+        self.add_overlay(
+            1, "Gripper state", self.env.observation[2].capitalize())
+        for block_num in range(len(self.env.observation[3])):
+            self.add_overlay(
+                1, self.env.get_block_color(block_num) + " block position",
+                str(round(self.env.observation[3][block_num][0],2)) + 
+                " " + str(round(self.env.observation[3][block_num][1],2)) + " " + 
+                str(round(self.env.observation[3][block_num][2],2)))
+            self.add_overlay(
+                1, self.env.get_block_color(block_num) + " block quaternion",
+                str(round(self.env.observation[4][block_num][0],2)) + 
+                " " + str(round(self.env.observation[4][block_num][1],2)) + " " + 
+                str(round(self.env.observation[4][block_num][2],2)) + 
+                str(round(self.env.observation[4][block_num][3],2)))
+        self.add_overlay(
+            1, "Mocap position", str(round(self.env.guiding_mocap_pos[0],2)) + 
+            " " + str(round(self.env.guiding_mocap_pos[1],2)) + " " + 
+            str(round(self.env.guiding_mocap_pos[2],2)))
+       
+
         
 
     def key_callback(self, window, key, scancode, action, mods):
@@ -66,9 +90,6 @@ class ControlViewer(mujoco_py.MjViewer):
             glfw.KEY_9,
         ]
 
-        global mocap_pos
-        global claws_open
-        global claw_rotation_ctrl
 
         if key in keys:
             self.active_joint = keys.index(key)
@@ -77,33 +98,35 @@ class ControlViewer(mujoco_py.MjViewer):
             self.moving = not self.moving
             self.delta = None
         elif key == glfw.KEY_O:
-            if mocap_pos[0] < MOCAP_LIMITS["front"]:
-                mocap_pos = list( map(add, mocap_pos, [ROBOT_SPEED, 0.00, 0.00]) )
+            if self.env.guiding_mocap_pos[0] < self.env.mocap_limits["front"]:
+                self.env.guiding_mocap_pos = list( map(add, self.env.guiding_mocap_pos, [self.env.robot_speed, 0.00, 0.00]) )
         elif key == glfw.KEY_L:
-            if mocap_pos[0] > MOCAP_LIMITS["back"]:
-                mocap_pos = list( map(add, mocap_pos, [-ROBOT_SPEED, 0.00, 0.00]) )  
+            if self.env.guiding_mocap_pos[0] > self.env.mocap_limits["back"]:
+                self.env.guiding_mocap_pos = list( map(add, self.env.guiding_mocap_pos, [-self.env.robot_speed, 0.00, 0.00]) )  
         elif key == glfw.KEY_K: 
-            if mocap_pos[1] < MOCAP_LIMITS["left"]: 
-                mocap_pos = list( map(add, mocap_pos, [0.00, ROBOT_SPEED, 0.00]) )
+            if self.env.guiding_mocap_pos[1] < self.env.mocap_limits["left"]: 
+                self.env.guiding_mocap_pos = list( map(add, self.env.guiding_mocap_pos, [0.00, self.env.robot_speed, 0.00]) )
         elif key == glfw.KEY_SEMICOLON:
-            if mocap_pos[1] > MOCAP_LIMITS["right"]:  
-                mocap_pos = list( map(add, mocap_pos, [0.00, -ROBOT_SPEED, 0.00]) )
+            if self.env.guiding_mocap_pos[1] > self.env.mocap_limits["right"]:  
+                self.env.guiding_mocap_pos = list( map(add, self.env.guiding_mocap_pos, [0.00, -self.env.robot_speed, 0.00]) )
         elif key == glfw.KEY_U:  
-            if mocap_pos[2] < MOCAP_LIMITS["up"]: 
-                mocap_pos = list( map(add, mocap_pos, [0.00, 0.00, ROBOT_SPEED]) )
+            if self.env.guiding_mocap_pos[2] < self.env.mocap_limits["up"]: 
+                self.env.guiding_mocap_pos = list( map(add, self.env.guiding_mocap_pos, [0.00, 0.00, self.env.robot_speed]) )
         elif key == glfw.KEY_J: 
-            if mocap_pos[2] > MOCAP_LIMITS["bottom"]:  
-                mocap_pos = list( map(add, mocap_pos, [0.00, 0.00 , -ROBOT_SPEED]) ) 
+            if self.env.guiding_mocap_pos[2] > self.env.mocap_limits["bottom"]:  
+                self.env.guiding_mocap_pos = list( map(add, self.env.guiding_mocap_pos, [0.00, 0.00 , -self.env.robot_speed]) ) 
         elif key == glfw.KEY_P:  
-            claws_open = 1
+            self.env.claws_open = 1
         elif key == glfw.KEY_LEFT_BRACKET:   
-            claws_open = -1
+            self.env.claws_open = -1
         elif key == glfw.KEY_RIGHT_BRACKET: 
-            if claw_rotation_ctrl > -3.14:  
-                claw_rotation_ctrl -= CLAW_ROTATION_SPEED
+            if self.env.claw_rotation_ctrl > -3.14:  
+                self.env.claw_rotation_ctrl -= self.env.claw_rotation_speed
         elif key == glfw.KEY_BACKSLASH:
-            if claw_rotation_ctrl < 3.14: 
-                claw_rotation_ctrl += CLAW_ROTATION_SPEED
+            if self.env.claw_rotation_ctrl < 3.14: 
+                self.env.claw_rotation_ctrl += self.env.claw_rotation_speed
+        elif key == glfw.KEY_N:
+            self.env.reset()
         
        
        
@@ -120,25 +143,22 @@ class ControlHSREnv(hsr.HSREnv):
     
     def viewer_setup(self):
         self.viewer = ControlViewer(self.sim)
+        self.viewer.env = self
 
     def control_agent(self):
 
-
-        # mocap_pos global variable is updated by the keyboard event handler
-        self.sim.data.mocap_pos[1] = mocap_pos
         
-        action = [0, 0, 0, claw_rotation_ctrl, claws_open, claws_open]
-        action_scale = np.ones_like(action)
-     
+        action = [0, 0, 0, self.claw_rotation_ctrl, self.claws_open, self.claws_open]
+        action_scale = np.ones_like(action) 
+ 
         
         if self.viewer and self.viewer.moving:
             print('delta =', self.viewer.delta)
         if self.viewer and self.viewer.moving and self.viewer.delta:
             action[self.viewer.active_joint] = self.viewer.delta
-            # if self.sim.model.joint_names[self.viewer.active_joint] == 'l_proximal_joint':
-            #     if action[self.sim.model.get_]
             print('delta =', self.viewer.delta)
             print('action =', action)
+        
 
         s, r, t, i = self.step(action * action_scale)
         
@@ -151,13 +171,20 @@ def main(env_args):
     
     env = ControlHSREnv(**env_args)
     done = False
+
+    env.reset()
    
     action = np.zeros(space_to_size(env.action_space))
     action[0] = 1
   
+    reset_count = 0
     while(True):
+        
         if done:
-            env.reset()
+            reset_count+=1
+            if reset_count == 20:
+                env.reset()
+                reset_count = 0
         done = env.control_agent()
 
 
