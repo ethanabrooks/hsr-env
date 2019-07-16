@@ -43,8 +43,8 @@ class ControlViewer(mujoco_py.MjViewer):
         self.add_overlay(
             0, "Turn claws counter-clockwise", "\\")
         self.add_overlay(
-            1, "Goal", str(self.env.get_block_color(self.env.goal[0])) +
-             " block to " + self.env.goal[1] + " square")
+            1, "Goal", self.env.goal[0].capitalize() +
+             " to " + self.env.goal[1].capitalize())
         self.add_overlay(
             1, "Reward", str(self.env.reward))
         self.add_overlay(
@@ -158,11 +158,11 @@ class ControlHSREnv(hsr.HSREnv):
             action[self.viewer.active_joint] = self.viewer.delta
             print('delta =', self.viewer.delta)
             print('action =', action)
+
         
 
         s, r, t, i = self.step(action * action_scale)
-        
-        
+               
         
         return t
 
@@ -172,7 +172,7 @@ def main(env_args):
     env = ControlHSREnv(**env_args)
     done = False
 
-    env.reset()
+    env.reset_model(init = True)
    
     action = np.zeros(space_to_size(env.action_space))
     action[0] = 1

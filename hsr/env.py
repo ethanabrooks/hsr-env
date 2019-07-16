@@ -143,17 +143,20 @@ class HSREnv(MujocoEnv):
         for i in block_pos:
             if i[2] < 0.37: return -1
 
-        for coni in range(d.ncon):
-            con = self.sim.data.contact[coni]
+        for block in self.target_blocks:
+            for coni in range(d.ncon):
+                con = self.sim.data.contact[coni]
             
-            #if there is contact with table
-            if (self.sim.model.geom_id2name(con.geom1) in self.color_goals and
-                self.sim.model.geom_id2name(con.geom2) == f"block{goal[0]}"):
-                #if contact with multiple colors, penalize
-                if self.sim.model.geom_id2name(con.geom1) != goal[1]:
-                    return -0.1
-                else: 
-                    reward = 1
+                #if there is contact with table
+                if (self.sim.model.geom_id2name(con.geom1) in self.color_goals and
+                    self.sim.model.geom_id2name(con.geom2) == block):
+                    #if contact with multiple colors, penalize
+                    if self.sim.model.geom_id2name(con.geom1) != goal[1]:
+                        reward = -0.1
+                        break
+                    else: 
+                        reward = 1
+            if reward == 1: return reward
 
 
         return reward
@@ -181,7 +184,7 @@ class HSREnv(MujocoEnv):
 
         return state
 
-    def reset_model(self):
+    def reset_model(self, init=False):
         self._time_steps = 0
 
         self.guiding_mocap_pos = [-0.25955956,  0.00525669,  0.78973095] # Initial position of hand_palm_link
@@ -189,34 +192,54 @@ class HSREnv(MujocoEnv):
         self.claw_rotation_ctrl = 0
    
         #reseting blocks positions
-        for joint_name in self.sim.model.joint_names:
-            if "block" in joint_name:
-                i = self.sim.model.get_joint_qpos_addr(joint_name)[0]
-                self.sim.data.qpos[i:i+7] = [0.32 * np.random.random() - 0.16, 
-                    0.48 * np.random.random() - 0.24,0.422, np.random.random(), 0, 0, np.random.random()]   
-   
+        if init == False:
+            for joint_name in self.sim.model.joint_names:
+                if "block" in joint_name:
+                    i = self.sim.model.get_joint_qpos_addr(joint_name)[0]
+                    self.sim.data.qpos[i:i+7] = [0.32 * np.random.random() - 0.16, 
+                        0.48 * np.random.random() - 0.24,0.422, np.random.random(), 0, 0, np.random.random()] 
+
+     
         
         state = self.new_state()
         self.sim.set_state(state)
         self.sim.forward()
-        self.goal = self.get_new_goal(np.random.randint(0, self.block_num))
+        self.goal = self.get_new_goal()
+        self.target_blocks = self.get_target_blocks(self.goal)
  
         self.observation = self._get_observation()
         return self.observation
 
-    def get_new_goal(self, block_num):
-
+    def get_target_blocks(self, goal):
         d = self.unwrapped.data
-        new_goal = ""
+        target_blocks = []
         for coni in range(d.ncon):
             con = self.sim.data.contact[coni]
-            if (self.sim.model.geom_id2name(con.geom1) in self.color_goals and
-                self.sim.model.geom_id2name(con.geom2) == f"block{block_num}"):
-                new_goal = self.color_goals[np.random.randint(0,4)]
-                while new_goal == self.sim.model.geom_id2name(con.geom1):
-                    new_goal = self.color_goals[np.random.randint(0,4)]
-                break
-        return [block_num, new_goal]
+            
+            #if there is contact with table
+            if (self.sim.model.geom_id2name(con.geom1) == goal[0] and
+                "block" in self.sim.model.geom_id2name(con.geom2)):
+                target_blocks.append(self.sim.model.geom_id2name(con.geom2))
+
+        target_blocks = list(dict.fromkeys(target_blocks))
+        return target_blocks
+
+    def get_new_goal(self):
+
+
+        d = self.unwrapped.data
+        goal_end = None
+        while goal_end == None:
+            goal_start = self.color_goals[np.random.randint(0,4)]
+            for coni in range(d.ncon):
+                con = self.sim.data.contact[coni]
+                if (self.sim.model.geom_id2name(con.geom1) == goal_start and
+                    "block" in self.sim.model.geom_id2name(con.geom2)):
+                    goal_end = self.color_goals[np.random.randint(0,4)]
+                    while goal_end == goal_start:
+                        goal_end = self.color_goals[np.random.randint(0,4)]
+                    break
+        return [goal_start, goal_end]
                 
                 
     def get_block_color(self,block_num):
