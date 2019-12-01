@@ -168,7 +168,6 @@ class ControlHSREnv(hsr.HSREnv):
 
 
 def main(env_args):
-    
     env = ControlHSREnv(**env_args)
     done = False
 

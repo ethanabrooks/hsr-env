@@ -11,7 +11,7 @@ from gym.wrappers.monitoring.video_recorder import VideoRecorder
 import numpy as np
 
 from hsr.mujoco_env import MujocoEnv
-
+from operator import add
 
 def get_xml_filepath(xml_filename=Path('models/world.xml')):
     return Path(Path(__file__).parent, xml_filename).absolute()
@@ -97,19 +97,75 @@ class HSREnv(MujocoEnv):
         block_quat = np.array([self.sim.data.get_body_xquat(body_name) for 
             body_name in self.sim.model.body_names if "block" in body_name])
         grip_pos = self.gripper_pos()
-        grip_state = "closed"
         grip_ang_pos = self.sim.data.ctrl[:][self.sim.model.actuator_names.index('wrist_roll_motor')]
         
         if self.sim.data.ctrl[:][self.sim.model.actuator_names.index('hand_l_proximal_motor')] == 1 :
-            grip_state = "open"
+            grip_state = 1
         else:
-            grip_state = "closed"
+            grip_state = 0
 
-        obs = np.array([grip_pos, grip_ang_pos, grip_state, block_pos, block_quat, mocap_pos])
+        block_pos = np.array([self.sim.data.get_body_xpos(body_name) for
+            body_name in self.sim.model.body_names if "block" in body_name])
+        
+        obs = np.array([*grip_pos.tolist(), grip_ang_pos, grip_state, *block_pos.tolist()[0], *block_quat.tolist()[0], *mocap_pos.tolist()])
+        #obs = np.array([grip_pos, grip_ang_pos, grip_state, block_pos, block_quat, mocap_pos])
+        #print(obs)
         return obs
 
     def step(self, action,  steps=None):
-        self.sim.data.ctrl[:] = action #updates gripper rotation and open/closed state
+
+        """
+        Actions:
+
+            0 -> move forward
+            1 -> move backwards
+            2 -> move right
+            3 -> move left
+            4 -> move up
+            5 -> move down
+            6 -> rotate claws clockwise
+            7 -> rotate claws counterclockwise
+            8 -> open claws
+            9 -> close claws
+
+
+        """
+
+
+        #update claw rotation from action
+        
+        if action == 0:
+            if self.guiding_mocap_pos[0] < self.mocap_limits["front"]:
+                self.guiding_mocap_pos = list( map(add, self.guiding_mocap_pos, [self.robot_speed, 0.00, 0.00]) )
+        elif action == 1:
+            if self.guiding_mocap_pos[0] > self.mocap_limits["back"]:
+                self.guiding_mocap_pos = list( map(add, self.guiding_mocap_pos, [-self.robot_speed, 0.00, 0.00]) )
+        elif action == 2:
+            if self.guiding_mocap_pos[1] < self.mocap_limits["left"]:
+                self.guiding_mocap_pos = list( map(add, self.guiding_mocap_pos, [0.00, self.robot_speed, 0.00]) )
+        elif action == 3:
+            if self.guiding_mocap_pos[1] > self.mocap_limits["right"]:
+                    self.guiding_mocap_pos = list( map(add, self.guiding_mocap_pos, [0.00, -self.robot_speed, 0.00]) )
+        elif action == 4:
+            if self.guiding_mocap_pos[2] < self.mocap_limits["up"]:
+                self.guiding_mocap_pos = list( map(add, self.guiding_mocap_pos, [0.00, 0.00, self.robot_speed]) )
+        elif action == 5:
+            if self.guiding_mocap_pos[2] > self.mocap_limits["bottom"]:
+                self.guiding_mocap_pos = list( map(add, self.guiding_mocap_pos, [0.00, 0.00 , -self.robot_speed]) )
+        elif  action == 7:
+            if self.claw_rotation_ctrl > -3.14:
+                self.claw_rotation_ctrl -= self.claw_rotation_speed
+        elif action == 6:
+            if self.claw_rotation_ctrl < 3.14:
+                self.claw_rotation_ctrl += self.claw_rotation_speed
+        elif action == 8:
+            self.claws_open = 1
+        elif action == 9:
+            self.claws_open = -1
+
+
+        self.sim.data.ctrl[:] = [0, 0, 0, self.claw_rotation_ctrl, self.claws_open, self.claws_open] #updates gripper rotation and open/closed state
+
         self.sim.data.mocap_pos[1] = self.guiding_mocap_pos 
         steps = steps or self.steps_per_action
         
@@ -124,10 +180,11 @@ class HSREnv(MujocoEnv):
         self.reward = self._get_reward(self.goal)
         self.observation  = self._get_observation()
         done = self.reward == 1 or self.reward == -1
+        if done: print("DONE")
         success = self.reward == 1 
         
-        info = {'log count': {'success': success and self._time_steps > 0}}
-        return self.observation, self.reward, done, info
+        #info = {'log count': {'success': success and self._time_steps > 0}}
+        return self.observation, self.reward, done, {}
 
     def _get_reward(self, goal):
         
@@ -143,6 +200,19 @@ class HSREnv(MujocoEnv):
         for i in block_pos:
             if i[2] < 0.37: return -1
 
+        #if  gripper gets close to block reward
+
+        grip_pos = self.gripper_pos()
+        grip_pos = grip_pos.tolist()
+        distance = distance_between(grip_pos, block_pos[0])
+        
+        if distance < 0.1:
+            reward = 1
+        else:
+            reward = -distance
+        
+        print("DISTANCE: ", distance)
+        """
         for block in self.target_blocks:
             for coni in range(d.ncon):
                 con = self.sim.data.contact[coni]
@@ -157,10 +227,29 @@ class HSREnv(MujocoEnv):
                     else: 
                         reward = 1
             if reward == 1: return reward
-
+        """
 
         return reward
 
+
+
+    def in_range(self, a, b, distance):
+        def parse(x):
+            if callable(x):
+                return x()
+            if isinstance(x, np.ndarray):
+                return x
+            if isinstance(x, str):
+                return self.sim.data.get_body_xpos(x)
+            raise RuntimeError(f"{x} must be function, np.ndarray, or string")
+
+        return distance_between(parse(a), parse(b)) < distance
+
+    def new_state(self):
+        state = self.sim.get_state()
+        for joint, space in self.starts.items():
+            assert isinstance(space, Space)
+            start, end = self.model.get_joint_qpos_addr(joint)
 
 
     def in_range(self, a, b, distance):
@@ -347,22 +436,3 @@ def print1(*strings):
 def mat2euler(mat):
     """ Convert Rotation Matrix to Euler Angles.  See rotation.py for notes """
     mat = np.asarray(mat, dtype=np.float64)
-    assert mat.shape[-2:] == (3, 3), "Invalid shape matrix {}".format(mat)
-
-    cy = np.sqrt(mat[..., 2, 2] * mat[..., 2, 2] +
-                 mat[..., 1, 2] * mat[..., 1, 2])
-    condition = cy > np.finfo(np.float64).eps * 4.
-    euler = np.empty(mat.shape[:-1], dtype=np.float64)
-    euler[..., 2] = np.where(condition,
-                             -np.arctan2(mat[..., 0, 1], mat[..., 0, 0]),
-                             -np.arctan2(-mat[..., 1, 0], mat[..., 1, 1]))
-    euler[..., 1] = np.where(condition, -np.arctan2(-mat[..., 0, 2], cy),
-                             -np.arctan2(-mat[..., 0, 2], cy))
-    euler[..., 0] = np.where(condition,
-                             -np.arctan2(mat[..., 1, 2], mat[..., 2, 2]), 0.0)
-    return euler
-
-
-
-
-Observation = namedtuple('Obs', 'observation goal')
