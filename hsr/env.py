@@ -44,7 +44,6 @@ class HSREnv(MujocoEnv):
         self.guiding_mocap_pos = [-0.25955956,  0.00525669,  0.78973095] # Initial position of hand_palm_link
         self.claws_open = 0 # Control for the claws. Open --> 1, Closed --> 0
         self.claw_rotation_ctrl = 0 # -3.14 --> -90 degrees, 3.14 --> 90 degrees)
-
         self.color_goals = ["red", "blue", "white", "green"]
         self.goals_specs = goals
         self.goals = None
@@ -179,8 +178,9 @@ class HSREnv(MujocoEnv):
         self._time_steps += 1
         self.reward = self._get_reward(self.goal)
         self.observation  = self._get_observation()
-        done = self.reward == 1 or self.reward == -1
-        if done: print("DONE")
+        done = self.reward == 1 or self.reward == -1 or self._time_steps > 10000
+        #if done: print("DONE")
+        #print("STEPS: ", self._time_steps)
         success = self.reward == 1 
         
         #info = {'log count': {'success': success and self._time_steps > 0}}
@@ -206,12 +206,18 @@ class HSREnv(MujocoEnv):
         grip_pos = grip_pos.tolist()
         distance = distance_between(grip_pos, block_pos[0])
         
-        if distance < 0.1:
+        if distance < 0.2:
             reward = 1
         else:
-            reward = -distance
+            reward = -0.1
+        #elif distance < self.distance:
+        #    reward = 0.1
+        #else:
+        #    reward = -0.1
+    
         
-        print("DISTANCE: ", distance)
+        self.distance = distance
+        #print("DISTANCE: ", distance)
         """
         for block in self.target_blocks:
             for coni in range(d.ncon):
