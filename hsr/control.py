@@ -148,10 +148,10 @@ class ControlHSREnv(hsr.HSREnv):
     def control_agent(self):
 
         
-        action = [0, 0, 0, self.claw_rotation_ctrl, self.claws_open, self.claws_open]
-        action_scale = np.ones_like(action) 
+        #action = [0, 0, 0, self.claw_rotation_ctrl, self.claws_open, self.claws_open]
+        #action_scale = np.ones_like(action) 
  
-        
+        action = None
         if self.viewer and self.viewer.moving:
             print('delta =', self.viewer.delta)
         if self.viewer and self.viewer.moving and self.viewer.delta:
@@ -161,7 +161,7 @@ class ControlHSREnv(hsr.HSREnv):
 
         
 
-        s, r, t, i = self.step(action * action_scale)
+        s, r, t, i = self.step(action)
                
         
         return t

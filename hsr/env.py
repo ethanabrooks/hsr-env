@@ -2,6 +2,7 @@
 from collections import namedtuple
 from pathlib import Path
 from typing import Dict, List
+import time
 
 # third party
 from gym import Space
@@ -144,7 +145,7 @@ class HSREnv(MujocoEnv):
                 self.guiding_mocap_pos = list( map(add, self.guiding_mocap_pos, [0.00, self.robot_speed, 0.00]) )
         elif action == 3:
             if self.guiding_mocap_pos[1] > self.mocap_limits["right"]:
-                    self.guiding_mocap_pos = list( map(add, self.guiding_mocap_pos, [0.00, -self.robot_speed, 0.00]) )
+                self.guiding_mocap_pos = list( map(add, self.guiding_mocap_pos, [0.00, -self.robot_speed, 0.00]) )
         elif action == 4:
             if self.guiding_mocap_pos[2] < self.mocap_limits["up"]:
                 self.guiding_mocap_pos = list( map(add, self.guiding_mocap_pos, [0.00, 0.00, self.robot_speed]) )
@@ -178,7 +179,8 @@ class HSREnv(MujocoEnv):
         self._time_steps += 1
         self.reward = self._get_reward(self.goal)
         self.observation  = self._get_observation()
-        done = self.reward == 1 or self.reward == -1 or self._time_steps > 10000
+        done = self.reward == 1 or self.reward == -1 or self._time_steps > 100
+        #print(self._time_steps)
         #if done: print("DONE")
         #print("STEPS: ", self._time_steps)
         success = self.reward == 1 
@@ -205,11 +207,10 @@ class HSREnv(MujocoEnv):
         grip_pos = self.gripper_pos()
         grip_pos = grip_pos.tolist()
         distance = distance_between(grip_pos, block_pos[0])
-        
-        if distance < 0.2:
-            reward = 1
-        else:
-            reward = -0.1
+
+        block_height = block_pos[0][2] - 0.422       
+        reward = -10 * distance + 100 * block_height
+        #print(block_pos[0][2])
         #elif distance < self.distance:
         #    reward = 0.1
         #else:
@@ -227,8 +228,6 @@ class HSREnv(MujocoEnv):
                 if (self.sim.model.geom_id2name(con.geom1) in self.color_goals and
                     self.sim.model.geom_id2name(con.geom2) == block):
                     #if contact with multiple colors, penalize
-                    if self.sim.model.geom_id2name(con.geom1) != goal[1]:
-                        reward = -0.1
                         break
                     else: 
                         reward = 1
