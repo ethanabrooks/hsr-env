@@ -170,12 +170,7 @@ class ControlHSREnv(hsr.HSREnv):
 def main(env_args):
     env = ControlHSREnv(**env_args)
     done = False
-
-    env.reset_model(init = True)
-   
-    action = np.zeros(space_to_size(env.action_space))
-    action[0] = 1
-  
+    env.reset_model(init = True)  
     reset_count = 0
     while(True):
         
