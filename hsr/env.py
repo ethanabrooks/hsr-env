@@ -39,6 +39,7 @@ class HSREnv(MujocoEnv):
 
         #KEYBOARD ROBOT CONTROL
 
+        self.action = -1
         self.robot_speed = 0.003
         self.claw_rotation_speed = 0.03
         self.mocap_limits = {"bottom": 0.37, "back": -0.44, "front": 0.75, "left": 0.55, "right": -.55, "up":1.5}       
@@ -72,6 +73,8 @@ class HSREnv(MujocoEnv):
 
         self.observation = None
         self.reward = None
+        
+        
         
 
         if self._record:
@@ -108,8 +111,9 @@ class HSREnv(MujocoEnv):
             body_name in self.sim.model.body_names if "block" in body_name])
         
         obs = np.array([*grip_pos.tolist(), grip_ang_pos, grip_state, *block_pos.tolist()[0], *block_quat.tolist()[0], *mocap_pos.tolist()])
-        #obs = np.array([grip_pos, grip_ang_pos, grip_state, block_pos, block_quat, mocap_pos])
-        #print(obs)
+        #print("Gripper position: ", grip_pos.tolist())
+        #print("Block position: ", block_pos.tolist()[0])
+        #print("Mocap position: ", mocap_pos.tolist())
         return obs
 
     def step(self, action,  steps=None):
@@ -162,7 +166,9 @@ class HSREnv(MujocoEnv):
             self.claws_open = 1
         elif action == 9:
             self.claws_open = -1
-
+        elif action == 10:
+            #do nothing
+            pass
 
         self.sim.data.ctrl[:] = [0, 0, 0, self.claw_rotation_ctrl, self.claws_open, self.claws_open] #updates gripper rotation and open/closed state
 
@@ -179,10 +185,7 @@ class HSREnv(MujocoEnv):
         self._time_steps += 1
         self.reward = self._get_reward(self.goal)
         self.observation  = self._get_observation()
-        done = self.reward == 1 or self.reward == -1 or self._time_steps > 100
-        #print(self._time_steps)
-        #if done: print("DONE")
-        #print("STEPS: ", self._time_steps)
+        done = self.reward == 1 or self.reward == -1 or self._time_steps > 200
         success = self.reward == 1 
         
         #info = {'log count': {'success': success and self._time_steps > 0}}
@@ -191,7 +194,7 @@ class HSREnv(MujocoEnv):
     def _get_reward(self, goal):
         
         
-        reward = -0.1
+        #reward = -0.1
 
         d = self.unwrapped.data
 
@@ -199,8 +202,8 @@ class HSREnv(MujocoEnv):
             body_name in self.sim.model.body_names if "block" in body_name])
 
         #if block falls off, penalize
-        for i in block_pos:
-            if i[2] < 0.37: return -1
+        #for i in block_pos:
+        #    if i[2] < 0.37: return -1
 
         #if  gripper gets close to block reward
 
@@ -208,16 +211,16 @@ class HSREnv(MujocoEnv):
         grip_pos = grip_pos.tolist()
         distance = distance_between(grip_pos, block_pos[0])
 
-        block_height = block_pos[0][2] - 0.422       
-        reward = -10 * distance + 100 * block_height
+        #block_height = block_pos[0][2] - 0.422       
+        #reward = -10 * distance #+ 100 * block_height
         #print(block_pos[0][2])
-        #elif distance < self.distance:
-        #    reward = 0.1
-        #else:
-        #    reward = -0.1
+        if distance < 0.15:
+            reward = 1
+        else:
+            reward = -0.1
     
         
-        self.distance = distance
+        #self.distance = distance
         #print("DISTANCE: ", distance)
         """
         for block in self.target_blocks:

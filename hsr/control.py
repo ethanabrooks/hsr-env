@@ -47,7 +47,7 @@ class ControlViewer(mujoco_py.MjViewer):
              " to " + self.env.goal[1].capitalize())
         self.add_overlay(
             1, "Reward", str(self.env.reward))
-        self.add_overlay(
+        """self.add_overlay(
             1, "Gripper position", str(round(self.env.observation[0][0],2)) + 
             " " + str(round(self.env.observation[0][1],2)) + " " + 
             str(round(self.env.observation[0][2],2)))
@@ -66,7 +66,7 @@ class ControlViewer(mujoco_py.MjViewer):
                 str(round(self.env.observation[4][block_num][0],2)) + 
                 " " + str(round(self.env.observation[4][block_num][1],2)) + " " + 
                 str(round(self.env.observation[4][block_num][2],2)) + 
-                str(round(self.env.observation[4][block_num][3],2)))
+                str(round(self.env.observation[4][block_num][3],2)))"""
         self.add_overlay(
             1, "Mocap position", str(round(self.env.guiding_mocap_pos[0],2)) + 
             " " + str(round(self.env.guiding_mocap_pos[1],2)) + " " + 
@@ -151,7 +151,7 @@ class ControlHSREnv(hsr.HSREnv):
         #action = [0, 0, 0, self.claw_rotation_ctrl, self.claws_open, self.claws_open]
         #action_scale = np.ones_like(action) 
  
-        action = None
+        action = -1
         if self.viewer and self.viewer.moving:
             print('delta =', self.viewer.delta)
         if self.viewer and self.viewer.moving and self.viewer.delta:
@@ -159,10 +159,8 @@ class ControlHSREnv(hsr.HSREnv):
             print('delta =', self.viewer.delta)
             print('action =', action)
 
-        
 
-        s, r, t, i = self.step(action)
-               
+        s, r, t, i = self.step(action)      
         
         return t
 

@@ -1,7 +1,7 @@
 from abc import ABC, abstractmethod
 import os
 from os import path
-
+import glfw
 import gym
 from gym import error, spaces
 from gym.utils import seeding
@@ -104,10 +104,13 @@ class MujocoEnv(gym.Env, ABC):
 
     def render(self, mode='human', width=DEFAULT_SIZE, height=DEFAULT_SIZE):
         if mode == 'rgb_array':
-            self._get_viewer(mode).render(width, height)
+            #self._get_viewer(mode).render(width, height)
+            self._get_viewer(mode).render()
             # window size used for old mujoco-py:
-            data = self._get_viewer(mode).read_pixels(
-                width, height, depth=False)
+            #data = self._get_viewer(mode).read_pixels(
+            #    width, height, depth=False)
+            width, height = glfw.get_framebuffer_size(self.sim._render_context_window.window)
+            data = self._get_viewer(mode).read_pixels(width, height, depth = False)
             # original image is upside-down, so flip it
             return data[::-1, :, :]
         elif mode == 'depth_array':
