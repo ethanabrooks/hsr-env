@@ -185,7 +185,7 @@ class HSREnv(MujocoEnv):
         self._time_steps += 1
         self.reward = self._get_reward(self.goal)
         self.observation  = self._get_observation()
-        done = self.reward == 1 or self.reward == -1 or self._time_steps > 200
+        done = self.reward == 1 or self.reward == -1 or self._time_steps > 300
         success = self.reward == 1 
         
         #info = {'log count': {'success': success and self._time_steps > 0}}
@@ -214,12 +214,12 @@ class HSREnv(MujocoEnv):
         #block_height = block_pos[0][2] - 0.422       
         #reward = -10 * distance #+ 100 * block_height
         #print(block_pos[0][2])
+        goal_bonus = 0
         if distance < 0.15:
-            reward = 1
-        else:
-            reward = -0.1
-    
-        
+            goal_bonus = 5
+        #else:
+        #    reward = -0.1
+        reward = -5*distance + goal_bonus
         #self.distance = distance
         #print("DISTANCE: ", distance)
         """
