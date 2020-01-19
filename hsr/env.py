@@ -180,7 +180,11 @@ class HSREnv(MujocoEnv):
                 self.render()
             if self._record and i % self.record_freq == 0:
                 self.video_recorder.capture_frame()
-            self.sim.step()
+            # Try to see if the simulation doesn't become unstable
+            try:
+                self.sim.step()
+            except:
+                self.reset_model()
             
         self._time_steps += 1
         self.reward = self._get_reward(self.goal)
@@ -209,16 +213,32 @@ class HSREnv(MujocoEnv):
 
         grip_pos = self.gripper_pos()
         grip_pos = grip_pos.tolist()
-        distance = distance_between(grip_pos, block_pos[0])
+        left_finger_pos = self.sim.data.get_body_xpos('hand_l_finger_tip_frame')
+        right_finger_pos = self.sim.data.get_body_xpos('hand_r_finger_tip_frame')
+        fingers_pos = (left_finger_pos + right_finger_pos)/2
+        distance = distance_between(fingers_pos, block_pos[0])
 
         #block_height = block_pos[0][2] - 0.422       
         #reward = -10 * distance #+ 100 * block_height
         #print(block_pos[0][2])
+        #print(np.array([body_name for 
+        #    body_name in self.sim.model.body_names]))
+        #for coni in range(d.ncon):
+        #    con = self.sim.data.contact[coni]
+        #
+        #    #if there is contact with table
+        #    if (self.sim.model.geom_id2name(con.geom1) in fingers and
+        #        "block" in self.sim.model.geom_id2name(con.geom2)):
+        #        #if contact with multiple colors, penalize
+        #        goal_bonus = 10
+
+
+
         goal_bonus = 0
-        if distance < 0.15:
+        if distance < 0.07:
             goal_bonus = 5
-        #else:
-        #    reward = -0.1
+        else:
+            reward = -0.1
         reward = -5*distance + goal_bonus
         #self.distance = distance
         #print("DISTANCE: ", distance)
