@@ -253,10 +253,11 @@ class HSREnv(MujocoEnv):
 
 
         #goal_bonus = 0
-        #if distance < 0.07:
-        #    goal_bonus = 5
+        reward = 0
+        if distance < 0.07:
+            reward = 1
             
-        reward = -10*distance #+ goal_bonus
+        #reward = -10*distance #+ goal_bonus
         #self.distance = distance
         #print("DISTANCE: ", distance)
         """
