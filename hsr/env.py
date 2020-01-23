@@ -145,6 +145,13 @@ class HSREnv(MujocoEnv):
         elif action == 1:
             if self.guiding_mocap_pos[2] > self.mocap_limits["bottom"]:
                 self.guiding_mocap_pos = list( map(add, self.guiding_mocap_pos, [0.00, 0.00 , -self.robot_speed]) )
+        if action == 2:
+            if self.guiding_mocap_pos[0] < self.mocap_limits["front"]:
+                self.guiding_mocap_pos = list( map(add, self.guiding_mocap_pos, [self.robot_speed, 0.00, 0.00]) )
+        elif action == 3:
+            if self.guiding_mocap_pos[0] > self.mocap_limits["back"]:
+                self.guiding_mocap_pos = list( map(add, self.guiding_mocap_pos, [-self.robot_speed, 0.00, 0.00]) )
+
 
         #update claw rotation from action
         
