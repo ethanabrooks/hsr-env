@@ -40,7 +40,7 @@ class HSREnv(MujocoEnv):
         #KEYBOARD ROBOT CONTROL
 
         self.action = -1
-        self.robot_speed = 0.003
+        self.robot_speed = 0.007
         self.claw_rotation_speed = 0.03
         self.mocap_limits = {"bottom": 0.37, "back": -0.44, "front": 0.75, "left": 0.55, "right": -.55, "up":1.5}       
         self.guiding_mocap_pos = [-0.25955956,  0.00525669,  0.78973095] # Initial position of hand_palm_link
@@ -206,7 +206,17 @@ class HSREnv(MujocoEnv):
         self._time_steps += 1
         self.reward = self._get_reward(self.goal)
         self.observation  = self._get_observation()
-        done = self._time_steps >= 128
+        
+
+        block_pos = np.array([self.sim.data.get_body_xpos(body_name) for
+            body_name in self.sim.model.body_names if "block" in body_name])
+
+        left_finger_pos = self.sim.data.get_body_xpos('hand_l_finger_tip_frame')
+        right_finger_pos = self.sim.data.get_body_xpos('hand_r_finger_tip_frame')
+        fingers_pos = (left_finger_pos + right_finger_pos)/2
+        distance = distance_between(fingers_pos, block_pos[0])
+
+        done = distance < 0.09 or self._time_steps >= 128
         #done = self.reward == 1 or self.reward == -1 or self._time_steps > 100
         success = self.reward == 1 
         
@@ -250,12 +260,12 @@ class HSREnv(MujocoEnv):
         #        #if contact with multiple colors, penalize
         #        goal_bonus = 10
 
-
+        reward = -distance
 
         #goal_bonus = 0
-        reward = 0
-        if distance < 0.07:
-            reward = 1
+        #reward = 0
+        #if distance < 0.07:
+        #    reward = 1
             
         #reward = -10*distance #+ goal_bonus
         #self.distance = distance
