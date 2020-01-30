@@ -145,12 +145,18 @@ class HSREnv(MujocoEnv):
         elif action == 1:
             if self.guiding_mocap_pos[2] > self.mocap_limits["bottom"]:
                 self.guiding_mocap_pos = list( map(add, self.guiding_mocap_pos, [0.00, 0.00 , -self.robot_speed]) )
-        if action == 2:
+        elif action == 2:
             if self.guiding_mocap_pos[0] < self.mocap_limits["front"]:
                 self.guiding_mocap_pos = list( map(add, self.guiding_mocap_pos, [self.robot_speed, 0.00, 0.00]) )
         elif action == 3:
             if self.guiding_mocap_pos[0] > self.mocap_limits["back"]:
                 self.guiding_mocap_pos = list( map(add, self.guiding_mocap_pos, [-self.robot_speed, 0.00, 0.00]) )
+        elif action == 4:
+            if self.guiding_mocap_pos[1] < self.mocap_limits["left"]:
+                self.guiding_mocap_pos = list( map(add, self.guiding_mocap_pos, [0.00, self.robot_speed, 0.00]) )
+        elif action == 5:
+            if self.guiding_mocap_pos[1] > self.mocap_limits["right"]:
+                self.guiding_mocap_pos = list( map(add, self.guiding_mocap_pos, [0.00, -self.robot_speed, 0.00]) )
 
 
         #update claw rotation from action
@@ -263,9 +269,9 @@ class HSREnv(MujocoEnv):
         reward = -distance
 
         #goal_bonus = 0
-        #reward = 0
+        #reward = 0.0
         #if distance < 0.07:
-        #    reward = 1
+        #    reward = 1.0
             
         #reward = -10*distance #+ goal_bonus
         #self.distance = distance
@@ -343,7 +349,7 @@ class HSREnv(MujocoEnv):
                     i = self.sim.model.get_joint_qpos_addr(joint_name)[0]
                     #self.sim.data.qpos[i:i+7] = [0.32 * np.random.random() - 0.16, 
                     #    0.48 * np.random.random() - 0.24,0.422, np.random.random(), 0, 0, np.random.random()] 
-                    self.sim.data.qpos[i:i+7] = [0.32 * np.random.random() - 0.16,0,0.422, 0, 0, 0, 0] 
+                    self.sim.data.qpos[i:i+7] = [.8,.12,0.422, 0, 0, 0, 0] 
 
      
         
