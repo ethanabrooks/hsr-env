@@ -349,7 +349,7 @@ class HSREnv(MujocoEnv):
                     i = self.sim.model.get_joint_qpos_addr(joint_name)[0]
                     #self.sim.data.qpos[i:i+7] = [0.32 * np.random.random() - 0.16, 
                     #    0.48 * np.random.random() - 0.24,0.422, np.random.random(), 0, 0, np.random.random()] 
-                    self.sim.data.qpos[i:i+7] = [.11,.12,0.422, 0, 0, 0, 0] 
+                    self.sim.data.qpos[i:i+7] = [0.32 * np.random.random() - 0.16,0.48 * np.random.random() - 0.24,0.422, 0, 0, 0, 0] 
 
      
         
