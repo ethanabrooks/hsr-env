@@ -40,9 +40,9 @@ class HSREnv(MujocoEnv):
         #KEYBOARD ROBOT CONTROL
 
         self.action = -1
-        self.robot_speed = 0.007
+        self.robot_speed = np.zeros((3,))
         self.claw_rotation_speed = 0.03
-        self.mocap_limits = {"bottom": 0.37, "back": -0.44, "front": 0.75, "left": 0.55, "right": -.55, "up":1.5}       
+        self.mocap_limits = {"down": 0.37, "back": -0.44, "front": 0.75, "left": 0.55, "right": -.55, "up":1.5}       
         self.guiding_mocap_pos = [-0.25955956,  0.00525669,  0.78973095] # Initial position of hand_palm_link
         self.claws_open = 0 # Control for the claws. Open --> 1, Closed --> 0
         self.claw_rotation_ctrl = 0 # -3.14 --> -90 degrees, 3.14 --> 90 degrees)
@@ -116,28 +116,17 @@ class HSREnv(MujocoEnv):
 
         #obs = np.array([*grip_pos.tolist(), grip_ang_pos, grip_state, *block_pos.tolist()[0], *block_quat.tolist()[0], *mocap_pos.tolist()])
         obs = np.array([*grip_pos.tolist(),*block_pos.tolist()[0]])
-        #print("Gripper position: ", grip_pos.tolist())
-        #print("Block position: ", block_pos.tolist()[0])
-        #print("Mocap position: ", mocap_pos.tolist())
+
         return obs
 
     def step(self, action,  steps=None):
 
         """
-        Actions:
+        action:
 
-            0 -> move forward
-            1 -> move backwards
-            2 -> move right
-            3 -> move left
-            4 -> move up
-            5 -> move down
-            6 -> rotate claws clockwise
-            7 -> rotate claws counterclockwise
-            8 -> open claws
-            9 -> close claws
+            [forward/backwards speed, right/left speed, up/down speed]
 
-
+        """
         """
         if action == 0:
             if self.guiding_mocap_pos[2] < self.mocap_limits["up"]:
@@ -157,6 +146,14 @@ class HSREnv(MujocoEnv):
         elif action == 5:
             if self.guiding_mocap_pos[1] > self.mocap_limits["right"]:
                 self.guiding_mocap_pos = list( map(add, self.guiding_mocap_pos, [0.00, -self.robot_speed, 0.00]) )
+        """
+
+
+        action = action/10
+        self.guiding_mocap_pos += action
+        lower_bounds = [self.mocap_limits["back"],self.mocap_limits["right"],self.mocap_limits["down"]]
+        upper_bounds = [self.mocap_limits["front"],self.mocap_limits["left"],self.mocap_limits["up"]]
+        self.guiding_mocap_pos = np.clip(self.guiding_mocap_pos, lower_bounds, upper_bounds)
 
 
         #update claw rotation from action
@@ -221,9 +218,9 @@ class HSREnv(MujocoEnv):
         right_finger_pos = self.sim.data.get_body_xpos('hand_r_finger_tip_frame')
         fingers_pos = (left_finger_pos + right_finger_pos)/2
         distance = distance_between(fingers_pos, block_pos[0])
-
-        done = distance < 0.09 or self._time_steps >= 128
-        #done = self.reward == 1 or self.reward == -1 or self._time_steps > 100
+        done = self.reward == 1 or self.reward == -1 or self._time_steps > 140
+        if self.reward == 1:
+            print("SUCCESS")
         success = self.reward == 1 
         
         #info = {'log count': {'success': success and self._time_steps > 0}}
@@ -266,12 +263,12 @@ class HSREnv(MujocoEnv):
         #        #if contact with multiple colors, penalize
         #        goal_bonus = 10
 
-        reward = -distance
+        #reward = -distance
 
         #goal_bonus = 0
-        #reward = 0.0
-        #if distance < 0.07:
-        #    reward = 1.0
+        reward = 0.0
+        if distance < 0.1:
+            reward = 1.0
             
         #reward = -10*distance #+ goal_bonus
         #self.distance = distance
