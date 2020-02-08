@@ -149,7 +149,7 @@ class HSREnv(MujocoEnv):
         """
 
 
-        action = action/10
+        action = action/50
         self.guiding_mocap_pos += action
         lower_bounds = [self.mocap_limits["back"],self.mocap_limits["right"],self.mocap_limits["down"]]
         upper_bounds = [self.mocap_limits["front"],self.mocap_limits["left"],self.mocap_limits["up"]]
