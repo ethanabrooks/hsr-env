@@ -182,7 +182,7 @@ class HSREnv(MujocoEnv):
         right_finger_pos = self.sim.data.get_body_xpos('hand_r_finger_tip_frame')
         fingers_pos = (left_finger_pos + right_finger_pos)/2
         distance = distance_between(fingers_pos, block_pos[0])
-        done = self.reward == 1 or self.reward == -1 or self._time_steps > 140
+        done = self.reward == 1 or self.reward == -1 or self._time_steps > 128
         if self.reward == 1:
             print("SUCCESS")
         success = self.reward == 1 
@@ -233,6 +233,9 @@ class HSREnv(MujocoEnv):
         reward = 0.0
         if distance < 0.1:
             reward = 1.0
+
+        for i in block_pos:
+            if i[2] < 0.37: reward = -1.0
             
         #reward = -10*distance #+ goal_bonus
         #self.distance = distance
