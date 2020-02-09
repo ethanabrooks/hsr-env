@@ -89,7 +89,7 @@ class ControlViewer(mujoco_py.MjViewer):
             glfw.KEY_8,
             glfw.KEY_9,
         ]
-
+        
 
         if key in keys:
             self.active_joint = keys.index(key)
@@ -98,23 +98,17 @@ class ControlViewer(mujoco_py.MjViewer):
             self.moving = not self.moving
             self.delta = None
         elif key == glfw.KEY_O:
-            if self.env.guiding_mocap_pos[0] < self.env.mocap_limits["front"]:
-                self.env.guiding_mocap_pos = list( map(add, self.env.guiding_mocap_pos, [self.env.robot_speed, 0.00, 0.00]) )
+            self.env.action = np.array([self.env.robot_speed,0,0])
         elif key == glfw.KEY_L:
-            if self.env.guiding_mocap_pos[0] > self.env.mocap_limits["back"]:
-                self.env.guiding_mocap_pos = list( map(add, self.env.guiding_mocap_pos, [-self.env.robot_speed, 0.00, 0.00]) )  
+            self.env.action = np.array([-self.env.robot_speed,0,0]) 
         elif key == glfw.KEY_K: 
-            if self.env.guiding_mocap_pos[1] < self.env.mocap_limits["left"]: 
-                self.env.guiding_mocap_pos = list( map(add, self.env.guiding_mocap_pos, [0.00, self.env.robot_speed, 0.00]) )
+            self.env.action = np.array([0, self.env.robot_speed,0])
         elif key == glfw.KEY_SEMICOLON:
-            if self.env.guiding_mocap_pos[1] > self.env.mocap_limits["right"]:  
-                self.env.guiding_mocap_pos = list( map(add, self.env.guiding_mocap_pos, [0.00, -self.env.robot_speed, 0.00]) )
+            self.env.action = np.array([0, -self.env.robot_speed,0])
         elif key == glfw.KEY_U:  
-            if self.env.guiding_mocap_pos[2] < self.env.mocap_limits["up"]: 
-                self.env.guiding_mocap_pos = list( map(add, self.env.guiding_mocap_pos, [0.00, 0.00, self.env.robot_speed]) )
+            self.env.action = np.array([0,0,self.env.robot_speed])
         elif key == glfw.KEY_J: 
-            if self.env.guiding_mocap_pos[2] > self.env.mocap_limits["bottom"]:  
-                self.env.guiding_mocap_pos = list( map(add, self.env.guiding_mocap_pos, [0.00, 0.00 , -self.env.robot_speed]) ) 
+            self.env.action = np.array([0,0, -self.env.robot_speed])
         elif key == glfw.KEY_P:  
             self.env.claws_open = 1
         elif key == glfw.KEY_LEFT_BRACKET:   
@@ -147,21 +141,7 @@ class ControlHSREnv(hsr.HSREnv):
 
     def control_agent(self):
 
-        
-        #action = [0, 0, 0, self.claw_rotation_ctrl, self.claws_open, self.claws_open]
-        #action_scale = np.ones_like(action) 
- 
-        action = -1
-        if self.viewer and self.viewer.moving:
-            print('delta =', self.viewer.delta)
-        if self.viewer and self.viewer.moving and self.viewer.delta:
-            action[self.viewer.active_joint] = self.viewer.delta
-            print('delta =', self.viewer.delta)
-            print('action =', action)
-
-
-        s, r, t, i = self.step(action)      
-        
+        s, r, t, i = self.step(self.action)          
         return t
 
 

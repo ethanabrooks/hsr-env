@@ -39,10 +39,11 @@ class HSREnv(MujocoEnv):
 
         #KEYBOARD ROBOT CONTROL
 
-        self.action = -1
-        self.robot_speed = np.zeros((3,))
+        self.action = np.zeros(3)
+        self.robot_speed = 0.01
         self.claw_rotation_speed = 0.03
-        self.mocap_limits = {"down": 0.37, "back": -0.44, "front": 0.75, "left": 0.55, "right": -.55, "up":1.5}       
+        #self.mocap_limits = {"down": 0.37, "back": -0.44, "front": 0.75, "left": 0.55, "right": -.55, "up":1.5}   
+        self.mocap_limits = {"down": 0.4, "back": -0.28, "front": 0.085, "left": 0.25, "right": -.25, "up":0.85}     
         self.guiding_mocap_pos = [-0.25955956,  0.00525669,  0.78973095] # Initial position of hand_palm_link
         self.claws_open = 0 # Control for the claws. Open --> 1, Closed --> 0
         self.claw_rotation_ctrl = 0 # -3.14 --> -90 degrees, 3.14 --> 90 degrees)
@@ -127,29 +128,9 @@ class HSREnv(MujocoEnv):
             [forward/backwards speed, right/left speed, up/down speed]
 
         """
-        """
-        if action == 0:
-            if self.guiding_mocap_pos[2] < self.mocap_limits["up"]:
-                self.guiding_mocap_pos = list( map(add, self.guiding_mocap_pos, [0.00, 0.00, self.robot_speed]) )
-        elif action == 1:
-            if self.guiding_mocap_pos[2] > self.mocap_limits["bottom"]:
-                self.guiding_mocap_pos = list( map(add, self.guiding_mocap_pos, [0.00, 0.00 , -self.robot_speed]) )
-        elif action == 2:
-            if self.guiding_mocap_pos[0] < self.mocap_limits["front"]:
-                self.guiding_mocap_pos = list( map(add, self.guiding_mocap_pos, [self.robot_speed, 0.00, 0.00]) )
-        elif action == 3:
-            if self.guiding_mocap_pos[0] > self.mocap_limits["back"]:
-                self.guiding_mocap_pos = list( map(add, self.guiding_mocap_pos, [-self.robot_speed, 0.00, 0.00]) )
-        elif action == 4:
-            if self.guiding_mocap_pos[1] < self.mocap_limits["left"]:
-                self.guiding_mocap_pos = list( map(add, self.guiding_mocap_pos, [0.00, self.robot_speed, 0.00]) )
-        elif action == 5:
-            if self.guiding_mocap_pos[1] > self.mocap_limits["right"]:
-                self.guiding_mocap_pos = list( map(add, self.guiding_mocap_pos, [0.00, -self.robot_speed, 0.00]) )
-        """
+        
 
-
-        action = action/50
+        action = action/20
         self.guiding_mocap_pos += action
         lower_bounds = [self.mocap_limits["back"],self.mocap_limits["right"],self.mocap_limits["down"]]
         upper_bounds = [self.mocap_limits["front"],self.mocap_limits["left"],self.mocap_limits["up"]]
@@ -158,24 +139,7 @@ class HSREnv(MujocoEnv):
 
         #update claw rotation from action
         
-        """if action == 0:
-            if self.guiding_mocap_pos[0] < self.mocap_limits["front"]:
-                self.guiding_mocap_pos = list( map(add, self.guiding_mocap_pos, [self.robot_speed, 0.00, 0.00]) )
-        elif action == 1:
-            if self.guiding_mocap_pos[0] > self.mocap_limits["back"]:
-                self.guiding_mocap_pos = list( map(add, self.guiding_mocap_pos, [-self.robot_speed, 0.00, 0.00]) )
-        elif action == 2:
-            if self.guiding_mocap_pos[1] < self.mocap_limits["left"]:
-                self.guiding_mocap_pos = list( map(add, self.guiding_mocap_pos, [0.00, self.robot_speed, 0.00]) )
-        elif action == 3:
-            if self.guiding_mocap_pos[1] > self.mocap_limits["right"]:
-                self.guiding_mocap_pos = list( map(add, self.guiding_mocap_pos, [0.00, -self.robot_speed, 0.00]) )
-        elif action == 4:
-            if self.guiding_mocap_pos[2] < self.mocap_limits["up"]:
-                self.guiding_mocap_pos = list( map(add, self.guiding_mocap_pos, [0.00, 0.00, self.robot_speed]) )
-        elif action == 5:
-            if self.guiding_mocap_pos[2] > self.mocap_limits["bottom"]:
-                self.guiding_mocap_pos = list( map(add, self.guiding_mocap_pos, [0.00, 0.00 , -self.robot_speed]) )
+        """
         elif  action == 7:
             if self.claw_rotation_ctrl > -3.14:
                 self.claw_rotation_ctrl -= self.claw_rotation_speed
