@@ -46,13 +46,14 @@ class HSREnv(MujocoEnv):
         self.mocap_limits = {"down": 0.4, "back": -0.28, "front": 0.085, "left": 0.25, "right": -.25, "up":0.85}     
         self.guiding_mocap_pos = [-0.25955956,  0.00525669,  0.78973095] # Initial position of hand_palm_link
         self.claws_open = 0 # Control for the claws. Open --> 1, Closed --> 0
+        self.claw_timer = 0
         self.claw_rotation_ctrl = 0 # -3.14 --> -90 degrees, 3.14 --> 90 degrees)
         self.color_goals = ["red", "blue", "white", "green"]
         self.goals_specs = goals
         self.goals = None
         self.goal = None
         self._time_steps = 0
-        self.steps_per_episode = 128
+        self.steps_per_episode = 500
         if not xml_file.is_absolute():
             xml_file = get_xml_filepath(xml_file)
 
@@ -131,10 +132,18 @@ class HSREnv(MujocoEnv):
         """
         #print("Num steps: ", self.steps_per_episode)
         action = action/100
-        self.guiding_mocap_pos += action
+        self.guiding_mocap_pos += action[:3]
+
         lower_bounds = [self.mocap_limits["back"],self.mocap_limits["right"],self.mocap_limits["down"]]
         upper_bounds = [self.mocap_limits["front"],self.mocap_limits["left"],self.mocap_limits["up"]]
         self.guiding_mocap_pos = np.clip(self.guiding_mocap_pos, lower_bounds, upper_bounds)
+        if self.claw_timer > 150:
+            if action[3] > 0: 
+                self.claws_open = 1
+            else:
+                self.claws_open = -1
+            self.claw_timer = 0
+        self.claw_timer += 1
 
 
         #update claw rotation from action
@@ -230,11 +239,11 @@ class HSREnv(MujocoEnv):
 
         #goal_bonus = 0
         reward = 0.0
-        if distance < 0.1:
-            reward = 1.0
+        #if distance < 0.1:
+        #    reward = 1.0
 
-        #for i in block_pos:
-        #    if i[2] < 0.37: reward = -1.0
+        for i in block_pos:
+            if i[2] > 0.45: reward = 1.0
             
         #reward = -10*distance #+ goal_bonus
         #self.distance = distance
