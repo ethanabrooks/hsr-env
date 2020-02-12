@@ -52,6 +52,7 @@ class HSREnv(MujocoEnv):
         self.goals = None
         self.goal = None
         self._time_steps = 0
+        self.steps_per_episode = 128
         if not xml_file.is_absolute():
             xml_file = get_xml_filepath(xml_file)
 
@@ -128,9 +129,8 @@ class HSREnv(MujocoEnv):
             [forward/backwards speed, right/left speed, up/down speed]
 
         """
-        
-
-        action = action/20
+        #print("Num steps: ", self.steps_per_episode)
+        action = action/30
         self.guiding_mocap_pos += action
         lower_bounds = [self.mocap_limits["back"],self.mocap_limits["right"],self.mocap_limits["down"]]
         upper_bounds = [self.mocap_limits["front"],self.mocap_limits["left"],self.mocap_limits["up"]]
@@ -157,9 +157,8 @@ class HSREnv(MujocoEnv):
         self.sim.data.ctrl[:] = [0, 0, 0, self.claw_rotation_ctrl, self.claws_open, self.claws_open] #updates gripper rotation and open/closed state
 
         self.sim.data.mocap_pos[1] = self.guiding_mocap_pos 
-        steps = steps or self.steps_per_action
         
-        for i in range(steps):
+        for i in range(self.steps_per_action):
             if self._render and i % self.render_freq == 0:
                 self.render()
             if self._record and i % self.record_freq == 0:
@@ -169,7 +168,7 @@ class HSREnv(MujocoEnv):
                 self.sim.step()
             except:
                 self.reset_model()
-            
+        #print("HSR time step: ", self._time_steps)    
         self._time_steps += 1
         self.reward = self._get_reward(self.goal)
         self.observation  = self._get_observation()
@@ -182,7 +181,7 @@ class HSREnv(MujocoEnv):
         right_finger_pos = self.sim.data.get_body_xpos('hand_r_finger_tip_frame')
         fingers_pos = (left_finger_pos + right_finger_pos)/2
         distance = distance_between(fingers_pos, block_pos[0])
-        done = self.reward == 1 or self.reward == -1 or self._time_steps > 128
+        done = self.reward == 1 or self.reward == -1 or self._time_steps > self.steps_per_episode
         if self.reward == 1:
             print("SUCCESS")
         success = self.reward == 1 
@@ -234,8 +233,8 @@ class HSREnv(MujocoEnv):
         if distance < 0.1:
             reward = 1.0
 
-        for i in block_pos:
-            if i[2] < 0.37: reward = -1.0
+        #for i in block_pos:
+        #    if i[2] < 0.37: reward = -1.0
             
         #reward = -10*distance #+ goal_bonus
         #self.distance = distance
