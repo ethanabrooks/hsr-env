@@ -130,7 +130,7 @@ class HSREnv(MujocoEnv):
 
         """
         #print("Num steps: ", self.steps_per_episode)
-        action = action/30
+        action = action/100
         self.guiding_mocap_pos += action
         lower_bounds = [self.mocap_limits["back"],self.mocap_limits["right"],self.mocap_limits["down"]]
         upper_bounds = [self.mocap_limits["front"],self.mocap_limits["left"],self.mocap_limits["up"]]
