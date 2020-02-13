@@ -98,20 +98,22 @@ class ControlViewer(mujoco_py.MjViewer):
             self.moving = not self.moving
             self.delta = None
         elif key == glfw.KEY_O:
-            self.env.action = np.array([self.env.robot_speed,0,0])
+            self.env.action[:3] = np.array([self.env.robot_speed,0,0])
         elif key == glfw.KEY_L:
-            self.env.action = np.array([-self.env.robot_speed,0,0]) 
+            self.env.action[:3] = np.array([-self.env.robot_speed,0,0]) 
         elif key == glfw.KEY_K: 
-            self.env.action = np.array([0, self.env.robot_speed,0])
+            self.env.action[:3] = np.array([0, self.env.robot_speed,0])
         elif key == glfw.KEY_SEMICOLON:
-            self.env.action = np.array([0, -self.env.robot_speed,0])
+            self.env.action[:3] = np.array([0, -self.env.robot_speed,0])
         elif key == glfw.KEY_U:  
-            self.env.action = np.array([0,0,self.env.robot_speed])
+            self.env.action[:3] = np.array([0,0,self.env.robot_speed])
         elif key == glfw.KEY_J: 
-            self.env.action = np.array([0,0, -self.env.robot_speed])
+            self.env.action[:3] = np.array([0,0, -self.env.robot_speed])
         elif key == glfw.KEY_P:  
+            self.env.action[3] = 1
             self.env.claws_open = 1
         elif key == glfw.KEY_LEFT_BRACKET:   
+            self.env.action[3] = -1
             self.env.claws_open = -1
         elif key == glfw.KEY_RIGHT_BRACKET: 
             if self.env.claw_rotation_ctrl > -3.14:  
@@ -140,7 +142,6 @@ class ControlHSREnv(hsr.HSREnv):
         self.viewer.env = self
 
     def control_agent(self):
-
         s, r, t, i = self.step(self.action)          
         return t
 

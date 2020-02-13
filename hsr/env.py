@@ -39,7 +39,7 @@ class HSREnv(MujocoEnv):
 
         #KEYBOARD ROBOT CONTROL
 
-        self.action = np.zeros(3)
+        self.action = np.zeros(4)
         self.robot_speed = 0.01
         self.claw_rotation_speed = 0.03
         #self.mocap_limits = {"down": 0.37, "back": -0.44, "front": 0.75, "left": 0.55, "right": -.55, "up":1.5}   
@@ -133,6 +133,7 @@ class HSREnv(MujocoEnv):
         #print("Num steps: ", self.steps_per_episode)
         action = action/100
         self.guiding_mocap_pos += action[:3]
+
         lower_bounds = [self.mocap_limits["back"],self.mocap_limits["right"],self.mocap_limits["down"]]
         upper_bounds = [self.mocap_limits["front"],self.mocap_limits["left"],self.mocap_limits["up"]]
         self.guiding_mocap_pos = np.clip(self.guiding_mocap_pos, lower_bounds, upper_bounds)
@@ -197,6 +198,21 @@ class HSREnv(MujocoEnv):
         #info = {'log count': {'success': success and self._time_steps > 0}}
         return self.observation, self.reward, done, {}
 
+    def isGrippingBlock(self, block_pos, left_finger_pos, right_finger_pos):
+        fingers_pos = (left_finger_pos + right_finger_pos)/2
+        print("Left finger: ", left_finger_pos)
+        print("Right finger: ", right_finger_pos)
+        print("Block pos: ", block_pos)
+        print("Gripper state: ", self.claws_open)
+        print("Height difference: ", abs(block_pos[2] - 0.02 - fingers_pos[2]))
+        print("Depth difference: ", abs(block_pos[0] - fingers_pos[0]))
+        if abs(block_pos[2] - 0.02 - fingers_pos[2]) < 0.02 and \
+            left_finger_pos[1] > block_pos[1] and right_finger_pos[1] < block_pos[1] \
+                and abs(block_pos[0] - fingers_pos[0]) < 0.05 and self.claws_open == -1:
+                    return True
+
+
+
     def _get_reward(self, goal):
         
         
@@ -217,6 +233,10 @@ class HSREnv(MujocoEnv):
         #grip_pos = grip_pos.tolist()
         left_finger_pos = self.sim.data.get_body_xpos('hand_l_finger_tip_frame')
         right_finger_pos = self.sim.data.get_body_xpos('hand_r_finger_tip_frame')
+        #print("Left finger: ", left_finger_pos)
+        #print("Right finger: ", right_finger_pos)
+        #print("Block pos: ", block_pos)
+        #print("Gripper state: ", self.claws_open)
         fingers_pos = (left_finger_pos + right_finger_pos)/2
         distance = distance_between(fingers_pos, block_pos[0])
 
@@ -242,7 +262,10 @@ class HSREnv(MujocoEnv):
         #    reward = 1.0
 
         for i in block_pos:
-            if i[2] > 0.65: reward = 1.0
+            #if i[2] > 0.6 and distance < 0.1: reward = 1.0
+            if self.isGrippingBlock(i, left_finger_pos, right_finger_pos):
+                reward = 1.0
+
             
         #reward = -10*distance #+ goal_bonus
         #self.distance = distance
