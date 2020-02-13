@@ -242,7 +242,7 @@ class HSREnv(MujocoEnv):
         #    reward = 1.0
 
         for i in block_pos:
-            if i[2] > 0.45: reward = 1.0
+            if i[2] > 0.65: reward = 1.0
             
         #reward = -10*distance #+ goal_bonus
         #self.distance = distance
