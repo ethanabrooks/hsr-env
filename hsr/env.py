@@ -200,12 +200,12 @@ class HSREnv(MujocoEnv):
 
     def isGrippingBlock(self, block_pos, left_finger_pos, right_finger_pos):
         fingers_pos = (left_finger_pos + right_finger_pos)/2
-        print("Left finger: ", left_finger_pos)
-        print("Right finger: ", right_finger_pos)
-        print("Block pos: ", block_pos)
-        print("Gripper state: ", self.claws_open)
-        print("Height difference: ", abs(block_pos[2] - 0.02 - fingers_pos[2]))
-        print("Depth difference: ", abs(block_pos[0] - fingers_pos[0]))
+        #print("Left finger: ", left_finger_pos)
+        #print("Right finger: ", right_finger_pos)
+        #print("Block pos: ", block_pos)
+        #print("Gripper state: ", self.claws_open)
+        #print("Height difference: ", abs(block_pos[2] - 0.02 - fingers_pos[2]))
+        #print("Depth difference: ", abs(block_pos[0] - fingers_pos[0]))
         if abs(block_pos[2] - 0.02 - fingers_pos[2]) < 0.02 and \
             left_finger_pos[1] > block_pos[1] and right_finger_pos[1] < block_pos[1] \
                 and abs(block_pos[0] - fingers_pos[0]) < 0.05 and self.claws_open == -1:
