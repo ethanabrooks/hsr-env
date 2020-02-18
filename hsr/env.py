@@ -163,9 +163,8 @@ class HSREnv(MujocoEnv):
 
         
         for i in range(self.steps_per_action):
-            #self.guiding_mocap_pos += action[:3]
-            self.guiding_mocap_pos[0] += action[0]
-            self.guiding_mocap_pos[2] += action[2]
+
+            self.guiding_mocap_pos += action[:3]
             self.guiding_mocap_pos = np.clip(self.guiding_mocap_pos, lower_bounds, upper_bounds)
             self.sim.data.mocap_pos[1] = self.guiding_mocap_pos
             if self._render and i % self.render_freq == 0:
@@ -366,7 +365,7 @@ class HSREnv(MujocoEnv):
                     #    0.48 * np.random.random() - 0.24,0.422, np.random.random(), 0, 0, np.random.random()] 
                     #self.sim.data.qpos[i:i+7] = [0.32 * np.random.random() - 0.16,0.48 * np.random.random() - 0.24,0.422, 0, 0, 0, 0] 
                     #self.sim.data.qpos[i:i+7] = [0.16 * np.random.random() - 0.08,0.24 * np.random.random() - 0.12,0.422, 0, 0, 0, 0] 
-                    self.sim.data.qpos[i:i+7] = [0.16 * np.random.random() - 0.08 ,-0.015 ,0.422, 0, 0, 0, 0] 
+                    self.sim.data.qpos[i:i+7] = [0.16 * np.random.random() - 0.08 ,0.24 * np.random.random() - 0.12 ,0.422, 0, 0, 0, 0] 
      
         
         state = self.new_state()
