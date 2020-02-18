@@ -352,9 +352,7 @@ class HSREnv(MujocoEnv):
         self._time_steps = 0
 
         self.guiding_mocap_pos = [-0.25955956,  0.00525669,  0.78973095] # Initial position of hand_palm_link
-        self.guiding_mocap_pos = [-0.1,  0,  0.52]
-        self.action[3] = 1
-        self.claws_open = 1
+        self.guiding_mocap_pos = [-0.1,  0,  0.65]
         self.claw_rotation_ctrl = 0
         self.sim.data.mocap_pos[1] = self.guiding_mocap_pos
 
@@ -368,7 +366,7 @@ class HSREnv(MujocoEnv):
                     #    0.48 * np.random.random() - 0.24,0.422, np.random.random(), 0, 0, np.random.random()] 
                     #self.sim.data.qpos[i:i+7] = [0.32 * np.random.random() - 0.16,0.48 * np.random.random() - 0.24,0.422, 0, 0, 0, 0] 
                     #self.sim.data.qpos[i:i+7] = [0.16 * np.random.random() - 0.08,0.24 * np.random.random() - 0.12,0.422, 0, 0, 0, 0] 
-                    self.sim.data.qpos[i:i+7] = [-0.04,-0.015 ,0.422, 0, 0, 0, 0] 
+                    self.sim.data.qpos[i:i+7] = [0.16 * np.random.random() - 0.08 ,-0.015 ,0.422, 0, 0, 0, 0] 
      
         
         state = self.new_state()
