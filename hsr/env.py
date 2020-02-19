@@ -184,13 +184,13 @@ class HSREnv(MujocoEnv):
 
         #normalize input
     
-        """self.n += 1.
+        self.n += 1.
         last_mean = self.mean.copy()
         self.mean += (self.observation-self.mean)/self.n
         self.mean_diff += (self.observation-last_mean)*(self.observation-self.mean)
         self.var = np.maximum(self.mean_diff/self.n, 1e-2)
         obs_std = np.sqrt(self.var)
-        self.observation = (self.observation- self.mean)/obs_std"""
+        self.observation = (self.observation- self.mean)/obs_std
 
 
 
