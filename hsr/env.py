@@ -45,7 +45,7 @@ class HSREnv(MujocoEnv):
         #self.mocap_limits = {"down": 0.37, "back": -0.44, "front": 0.75, "left": 0.55, "right": -.55, "up":1.5}   
         self.mocap_limits = {"down": 0.5, "back": -0.25, "front": 0.033, "left": 0.125, "right": -.125, "up":0.70}     
         self.guiding_mocap_pos = [-0.25955956,  0.00525669,  0.78973095] # Initial position of hand_palm_link
-        self.claws_open = 0 # Control for the claws. Open --> 1, Closed --> 0
+        self.claws = 0 # Control for the claws. Open --> 1, Closed --> -1
         self.claw_timer = 0
         self.claw_rotation_ctrl = 0 # -3.14 --> -90 degrees, 3.14 --> 90 degrees)
         self.color_goals = ["red", "blue", "white", "green"]
@@ -76,10 +76,10 @@ class HSREnv(MujocoEnv):
 
         self.observation = None
         self.reward = None
-        self.n = np.zeros(6)
-        self.mean = np.zeros(6)
-        self.mean_diff = np.zeros(6)
-        self.var = np.zeros(6)
+        self.n = np.zeros(13)
+        self.mean = np.zeros(13)
+        self.mean_diff = np.zeros(13)
+        self.var = np.zeros(13)
         
         
         
@@ -122,7 +122,7 @@ class HSREnv(MujocoEnv):
         fingers_pos = (left_finger_pos + right_finger_pos)/2
 
         #obs = np.array([*grip_pos.tolist(), grip_ang_pos, grip_state, *block_pos.tolist()[0], *block_quat.tolist()[0], *mocap_pos.tolist()])
-        obs = np.array([*grip_pos.tolist(),*block_pos.tolist()[0]])
+        obs = np.array([*fingers_pos.tolist(), *grip_pos.tolist(),*block_pos.tolist()[0], self.claws,*mocap_pos.tolist()])
 
         return obs
 
@@ -140,7 +140,7 @@ class HSREnv(MujocoEnv):
 
         lower_bounds = [self.mocap_limits["back"],self.mocap_limits["right"],self.mocap_limits["down"]]
         upper_bounds = [self.mocap_limits["front"],self.mocap_limits["left"],self.mocap_limits["up"]]
-        claws = np.clip(action[3], -1, 1)
+        self.claws = np.clip(action[3], -1, 1)
 
         #update claw rotation from action
         
@@ -159,12 +159,14 @@ class HSREnv(MujocoEnv):
             #do nothing
             pass"""
 
-        self.sim.data.ctrl[:] = [0, 0, 0, self.claw_rotation_ctrl, claws, claws] #updates gripper rotation and open/closed state
+        self.sim.data.ctrl[:] = [0, 0, 0, self.claw_rotation_ctrl, self.claws, self.claws] #updates gripper rotation and open/closed state
 
         
         for i in range(self.steps_per_action):
 
-            self.guiding_mocap_pos += action[:3]
+            #self.guiding_mocap_pos += action[:3]
+            self.guiding_mocap_pos[0] += action[0]
+            self.guiding_mocap_pos[2] += action[2]
             self.guiding_mocap_pos = np.clip(self.guiding_mocap_pos, lower_bounds, upper_bounds)
             self.sim.data.mocap_pos[1] = self.guiding_mocap_pos
             if self._render and i % self.render_freq == 0:
@@ -182,22 +184,14 @@ class HSREnv(MujocoEnv):
 
         #normalize input
     
-        self.n += 1.
+        """self.n += 1.
         last_mean = self.mean.copy()
         self.mean += (self.observation-self.mean)/self.n
         self.mean_diff += (self.observation-last_mean)*(self.observation-self.mean)
         self.var = np.maximum(self.mean_diff/self.n, 1e-2)
         obs_std = np.sqrt(self.var)
-        self.observation = (self.observation- self.mean)/obs_std
-        #print(self.observation)
-        
-        self.n += 1.
-        last_mean = self.mean.copy()
-        self.mean += (self.observation-self.mean)/self.n
-        self.mean_diff += (self.observation-last_mean)*(self.observation-self.mean)
-        self.var = np.maximum(self.mean_diff/self.n, 1e-2)
-        obs_std = np.sqrt(self.var)
-        self.observation = (self.observation- self.mean)/obs_std
+        self.observation = (self.observation- self.mean)/obs_std"""
+
 
 
         block_pos = np.array([self.sim.data.get_body_xpos(body_name) for
@@ -365,7 +359,7 @@ class HSREnv(MujocoEnv):
                     #    0.48 * np.random.random() - 0.24,0.422, np.random.random(), 0, 0, np.random.random()] 
                     #self.sim.data.qpos[i:i+7] = [0.32 * np.random.random() - 0.16,0.48 * np.random.random() - 0.24,0.422, 0, 0, 0, 0] 
                     #self.sim.data.qpos[i:i+7] = [0.16 * np.random.random() - 0.08,0.24 * np.random.random() - 0.12,0.422, 0, 0, 0, 0] 
-                    self.sim.data.qpos[i:i+7] = [0.16 * np.random.random() - 0.08 ,0.24 * np.random.random() - 0.12 ,0.422, 0, 0, 0, 0] 
+                    self.sim.data.qpos[i:i+7] = [0.16 * np.random.random() - 0.08 ,0,0.422, 0, 0, 0, 0] 
      
         
         state = self.new_state()
