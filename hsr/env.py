@@ -80,6 +80,9 @@ class HSREnv(MujocoEnv):
         self.mean = np.zeros(13)
         self.mean_diff = np.zeros(13)
         self.var = np.zeros(13)
+
+        self.episodes = 0
+        self.successes = 0
         
         
         
@@ -203,7 +206,12 @@ class HSREnv(MujocoEnv):
         distance = distance_between(fingers_pos, block_pos[0])
         done = self.reward == 1 or self.reward == -1 or self._time_steps > self.steps_per_episode
         if self.reward == 1:
-            print("SUCCESS")
+            #print("SUCCESS")
+            #print("Episodes: ", self.episodes, "Successes: ", self.successes, " % ",100 * self.successes/(self.episodes+1))
+            self.successes+=1
+
+        if done: self.episodes += 1
+        
         success = self.reward == 1 
         
         #info = {'log count': {'success': success and self._time_steps > 0}}
