@@ -125,7 +125,8 @@ class HSREnv(MujocoEnv):
         fingers_pos = (left_finger_pos + right_finger_pos)/2
 
         #obs = np.array([*grip_pos.tolist(), grip_ang_pos, grip_state, *block_pos.tolist()[0], *block_quat.tolist()[0], *mocap_pos.tolist()])
-        obs = np.array([*fingers_pos.tolist(), *grip_pos.tolist(),*block_pos.tolist()[0], self.claws,*mocap_pos.tolist()])
+        #obs = np.array([*fingers_pos.tolist(), *grip_pos.tolist(),*block_pos.tolist()[0], self.claws,*mocap_pos.tolist()])
+        obs = np.array([*fingers_pos.tolist(), *grip_pos.tolist()])
 
         return obs
 
@@ -162,7 +163,7 @@ class HSREnv(MujocoEnv):
             #do nothing
             pass"""
 
-        self.sim.data.ctrl[:] = [0, 0, 0, self.claw_rotation_ctrl, self.claws, self.claws] #updates gripper rotation and open/closed state
+        #self.sim.data.ctrl[:] = [0, 0, 0, self.claw_rotation_ctrl, self.claws, self.claws] #updates gripper rotation and open/closed state
 
         
         for i in range(self.steps_per_action):
@@ -177,13 +178,18 @@ class HSREnv(MujocoEnv):
             if self._record and i % self.record_freq == 0:
                 self.video_recorder.capture_frame()
             # Try to see if the simulation doesn't become unstable
-            self.sim.step()
+            try:
+                self.sim.step()
+            except:
+                print("Simulation step failed")
+                self.reset_model()
 
         self._time_steps += 1
         self.reward = self._get_reward(self.goal)
         self.observation  = self._get_observation()
 
         #normalize input
+        """
         self.n += 1.
         last_mean = self.mean.copy()
         self.mean += (self.observation-self.mean)/self.n
@@ -191,7 +197,7 @@ class HSREnv(MujocoEnv):
         self.var = np.maximum(self.mean_diff/self.n, 1e-2)
         obs_std = np.sqrt(self.var)
         self.observation = (self.observation- self.mean)/obs_std
-
+        """
 
 
         block_pos = np.array([self.sim.data.get_body_xpos(body_name) for
