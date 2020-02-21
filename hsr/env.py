@@ -207,7 +207,8 @@ class HSREnv(MujocoEnv):
         right_finger_pos = self.sim.data.get_body_xpos('hand_r_finger_tip_frame')
         fingers_pos = (left_finger_pos + right_finger_pos)/2
         distance = distance_between(fingers_pos, block_pos[0])
-        done = self._time_steps > self.steps_per_episode
+        done = self._time_steps > self.steps_per_episode or self.reward == 1
+        
 
         
         #info = {'log count': {'success': success and self._time_steps > 0}}
