@@ -76,10 +76,10 @@ class HSREnv(MujocoEnv):
 
         self.observation = None
         self.reward = None
-        self.n = np.zeros(13)
-        self.mean = np.zeros(13)
-        self.mean_diff = np.zeros(13)
-        self.var = np.zeros(13)
+        self.n = np.zeros(6)
+        self.mean = np.zeros(6)
+        self.mean_diff = np.zeros(6)
+        self.var = np.zeros(6)
 
 
 
@@ -189,7 +189,6 @@ class HSREnv(MujocoEnv):
         self.observation  = self._get_observation()
 
         #normalize input
-        """
         self.n += 1.
         last_mean = self.mean.copy()
         self.mean += (self.observation-self.mean)/self.n
@@ -197,7 +196,7 @@ class HSREnv(MujocoEnv):
         self.var = np.maximum(self.mean_diff/self.n, 1e-2)
         obs_std = np.sqrt(self.var)
         self.observation = (self.observation- self.mean)/obs_std
-        """
+        
 
 
         block_pos = np.array([self.sim.data.get_body_xpos(body_name) for
