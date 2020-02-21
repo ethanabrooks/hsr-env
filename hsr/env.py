@@ -27,7 +27,7 @@ class HSREnv(MujocoEnv):
             xml_file: Path,
             goals: List[GoalSpec],
             starts: Dict[str, Box],
-            steps_per_action: int = 300,
+            steps_per_action: int = 30,
             obs_type: str = None,
             render: bool = False,
             record: bool = False,
@@ -68,7 +68,7 @@ class HSREnv(MujocoEnv):
         self._record = any([record, record_path, record_freq])
         self._render = any([render, render_freq])
         self.record_freq = record_freq or 20
-        self.render_freq = render_freq or 20
+        self.render_freq = render_freq or 1
         record_path = record_path or '/tmp/training-video'
         self.steps_per_action = steps_per_action
         self._block_name = 'block0'
@@ -168,7 +168,7 @@ class HSREnv(MujocoEnv):
         for i in range(self.steps_per_action):
 
             #self.guiding_mocap_pos += action[:3]
-            self.guiding_mocap_pos[0] += action[0]
+            #self.guiding_mocap_pos[0] += action[0]
             self.guiding_mocap_pos[2] += action[2]
             self.guiding_mocap_pos = np.clip(self.guiding_mocap_pos, lower_bounds, upper_bounds)
             self.sim.data.mocap_pos[1] = self.guiding_mocap_pos
@@ -177,16 +177,13 @@ class HSREnv(MujocoEnv):
             if self._record and i % self.record_freq == 0:
                 self.video_recorder.capture_frame()
             # Try to see if the simulation doesn't become unstable
-            try:
-                self.sim.step()
-            except:
-                self.reset_model()
+            self.sim.step()
+
         self._time_steps += 1
         self.reward = self._get_reward(self.goal)
         self.observation  = self._get_observation()
 
         #normalize input
-    
         self.n += 1.
         last_mean = self.mean.copy()
         self.mean += (self.observation-self.mean)/self.n
@@ -250,7 +247,7 @@ class HSREnv(MujocoEnv):
         #print("Block pos: ", block_pos)
         #print("Gripper state: ", self.claws_open)
         fingers_pos = (left_finger_pos + right_finger_pos)/2
-        #distance = distance_between(fingers_pos, block_pos[0])
+        distance = distance_between(fingers_pos, block_pos[0])
         #distance = distance_between(np.array([block_pos[0][0], block_pos[0][1], 0.6]), block_pos[0])
 
         #block_height = block_pos[0][2] - 0.422       
@@ -271,11 +268,11 @@ class HSREnv(MujocoEnv):
 
         #goal_bonus = 0
         #reward = 0.0
-        #if distance < 0.1:
-        #    reward = 1.0
+        if distance < 0.1:
+            reward = 1.0
 
-        for i in block_pos:
-            if i[2] > 0.55: reward = 1.0
+        #for i in block_pos:
+        #    if i[2] > 0.55: reward = 1.0
             #if self.isGrippingBlock(i, left_finger_pos, right_finger_pos):
             #    reward = 1.0
 
@@ -345,8 +342,8 @@ class HSREnv(MujocoEnv):
     def reset_model(self, init=False):
         self._time_steps = 0
 
-        self.guiding_mocap_pos = [-0.25955956,  0.00525669,  0.78973095] # Initial position of hand_palm_link
-        self.guiding_mocap_pos = [-0.1,  0,  0.65]
+        #self.guiding_mocap_pos = [-0.25955956,  0.00525669,  0.78973095] # Initial position of hand_palm_link
+        self.guiding_mocap_pos = [-0.1,  0,  0.75]
         self.claw_rotation_ctrl = 0
         self.sim.data.mocap_pos[1] = self.guiding_mocap_pos
 
@@ -360,7 +357,8 @@ class HSREnv(MujocoEnv):
                     #    0.48 * np.random.random() - 0.24,0.422, np.random.random(), 0, 0, np.random.random()] 
                     #self.sim.data.qpos[i:i+7] = [0.32 * np.random.random() - 0.16,0.48 * np.random.random() - 0.24,0.422, 0, 0, 0, 0] 
                     #self.sim.data.qpos[i:i+7] = [0.16 * np.random.random() - 0.08,0.24 * np.random.random() - 0.12,0.422, 0, 0, 0, 0] 
-                    self.sim.data.qpos[i:i+7] = [0.16 * np.random.random() - 0.08 ,0,0.422, 0, 0, 0, 0] 
+                    #self.sim.data.qpos[i:i+7] = [0.16 * np.random.random() - 0.08 ,0,0.422, 0, 0, 0, 0] 
+                    self.sim.data.qpos[i:i+7] = [0,0,0.422, 0, 0, 0, 0] 
      
         
         state = self.new_state()
