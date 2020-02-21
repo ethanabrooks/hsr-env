@@ -163,14 +163,14 @@ class HSREnv(MujocoEnv):
             #do nothing
             pass"""
 
-        #self.sim.data.ctrl[:] = [0, 0, 0, self.claw_rotation_ctrl, self.claws, self.claws] #updates gripper rotation and open/closed state
+        self.sim.data.ctrl[:] = [0, 0, 0, self.claw_rotation_ctrl, self.claws, self.claws] #updates gripper rotation and open/closed state
 
         
         for i in range(self.steps_per_action):
 
-            self.guiding_mocap_pos += action[:3]
-            #self.guiding_mocap_pos[0] += action[0]
-            #self.guiding_mocap_pos[2] += action[2]
+            #self.guiding_mocap_pos += action[:3]
+            self.guiding_mocap_pos[0] += action[0]
+            self.guiding_mocap_pos[2] += action[2]
             self.guiding_mocap_pos = np.clip(self.guiding_mocap_pos, lower_bounds, upper_bounds)
             self.sim.data.mocap_pos[1] = self.guiding_mocap_pos
             if self._render and i % self.render_freq == 0:
@@ -253,7 +253,7 @@ class HSREnv(MujocoEnv):
         #print("Block pos: ", block_pos)
         #print("Gripper state: ", self.claws_open)
         fingers_pos = (left_finger_pos + right_finger_pos)/2
-        distance = distance_between(fingers_pos, block_pos[0])
+        #distance = distance_between(fingers_pos, block_pos[0])
         #distance = distance_between(np.array([block_pos[0][0], block_pos[0][1], 0.6]), block_pos[0])
 
         #block_height = block_pos[0][2] - 0.422       
@@ -274,11 +274,11 @@ class HSREnv(MujocoEnv):
 
         #goal_bonus = 0
         #reward = 0.0
-        if distance < 0.1:
-            reward = 1.0
+        #if distance < 0.1:
+        #    reward = 1.0
 
-        #for i in block_pos:
-        #    if i[2] > 0.55: reward = 1.0
+        for i in block_pos:
+            if i[2] > 0.58: reward = 1.0
             #if self.isGrippingBlock(i, left_finger_pos, right_finger_pos):
             #    reward = 1.0
 
@@ -361,9 +361,9 @@ class HSREnv(MujocoEnv):
                     i = self.sim.model.get_joint_qpos_addr(joint_name)[0]
                     #self.sim.data.qpos[i:i+7] = [0.32 * np.random.random() - 0.16, 
                     #    0.48 * np.random.random() - 0.24,0.422, np.random.random(), 0, 0, np.random.random()] 
-                    self.sim.data.qpos[i:i+7] = [0.32 * np.random.random() - 0.16,0.48 * np.random.random() - 0.24,0.422, 0, 0, 0, 0] 
+                    #self.sim.data.qpos[i:i+7] = [0.32 * np.random.random() - 0.16,0.48 * np.random.random() - 0.24,0.422, 0, 0, 0, 0] 
                     #self.sim.data.qpos[i:i+7] = [0.16 * np.random.random() - 0.08,0.24 * np.random.random() - 0.12,0.422, 0, 0, 0, 0] 
-                    #self.sim.data.qpos[i:i+7] = [0.16 * np.random.random() - 0.08 ,0,0.422, 0, 0, 0, 0] 
+                    self.sim.data.qpos[i:i+7] = [0.16 * np.random.random() - 0.08 ,0,0.422, 0, 0, 0, 0] 
                     #self.sim.data.qpos[i:i+7] = [0,0,0.422, 0, 0, 0, 0] 
      
         
