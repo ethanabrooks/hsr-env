@@ -171,7 +171,7 @@ class HSREnv(MujocoEnv):
         self.sim.data.ctrl[:] = [0, 0, 0, self.claw_rotation_ctrl, self.claws, self.claws] #updates gripper rotation and open/closed state
 
         #normalize input
-        """
+        
         self.n += 1. #CHANGE
         last_mean = self.mean.copy()
         self.mean += (self.observation-self.mean)/self.n
@@ -179,7 +179,7 @@ class HSREnv(MujocoEnv):
         self.var = np.maximum(self.mean_diff/self.n, 1e-2)
         obs_std = np.sqrt(self.var)
         self.observation = (self.observation- self.mean)/obs_std
-        """
+        
 
 
         for i in range(self.steps_per_action):
@@ -358,10 +358,7 @@ class HSREnv(MujocoEnv):
         self.claw_rotation_ctrl = 0
         self.sim.data.mocap_pos[1] = self.guiding_mocap_pos
 
-        self.n = np.zeros(6)
-        self.mean = np.zeros(6)
-        self.mean_diff = np.zeros(6)
-        self.var = np.zeros(6)
+        
         
         #reseting blocks positions
         if init == False:
@@ -385,7 +382,19 @@ class HSREnv(MujocoEnv):
         self.target_blocks = self.get_target_blocks(self.goal)
  
         self.observation = self._get_observation()
-        print("Observation1: ", self.observation)
+        self.n = np.zeros(6)
+        self.mean = np.zeros(6)
+        self.mean_diff = np.zeros(6)
+        self.var = np.zeros(6)
+
+        self.n += 1. #CHANGE
+        last_mean = self.mean.copy()
+        self.mean += (self.observation-self.mean)/self.n
+        self.mean_diff += (self.observation-last_mean)*(self.observation-self.mean)
+        self.var = np.maximum(self.mean_diff/self.n, 1e-2)
+        obs_std = np.sqrt(self.var)
+        self.observation = (self.observation- self.mean)/obs_std
+        
         return self.observation
 
     def get_target_blocks(self, goal):
