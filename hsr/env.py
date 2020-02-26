@@ -130,7 +130,6 @@ class HSREnv(MujocoEnv):
 
         #obs = np.array([*grip_pos.tolist(), grip_ang_pos, grip_state, *block_pos.tolist()[0], *block_quat.tolist()[0], *mocap_pos.tolist()])
         #obs = np.array([*fingers_pos.tolist(), *grip_pos.tolist(),*block_pos.tolist()[0], self.claws,*mocap_pos.tolist()])
-        print(fingers_pos)
         obs = np.array([*fingers_pos.tolist(), *block_pos.tolist()[0]])
 
         return obs
