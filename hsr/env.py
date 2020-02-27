@@ -380,7 +380,7 @@ class HSREnv(MujocoEnv):
         self.goal = self.get_new_goal()
         self.target_blocks = self.get_target_blocks(self.goal)
  
-        self.observation = self._get_observation()
+        """self.observation = self._get_observation()
         self.n = np.zeros(6)
         self.mean = np.zeros(6)
         self.mean_diff = np.zeros(6)
@@ -392,7 +392,7 @@ class HSREnv(MujocoEnv):
         self.mean_diff += (self.observation-last_mean)*(self.observation-self.mean)
         self.var = np.maximum(self.mean_diff/self.n, 1e-2)
         obs_std = np.sqrt(self.var)
-        self.observation = (self.observation- self.mean)/obs_std
+        self.observation = (self.observation- self.mean)/obs_std"""
         
         return self.observation
 
