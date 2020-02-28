@@ -190,11 +190,11 @@ class HSREnv(MujocoEnv):
             if self._record and i % self.record_freq == 0:
                 self.video_recorder.capture_frame()
             # Try to see if the simulation doesn't become unstable
-            try:
-                self.sim.step()
-            except:
-                print("Simulation step failed")
-                #self.reset_model()
+            #try:
+            self.sim.step()
+            #except:
+            #print("Simulation step failed")
+            #self.reset_model()
         #print(self._time_steps)
 
         self._time_steps += 1
@@ -204,10 +204,10 @@ class HSREnv(MujocoEnv):
         #normalize input
         #normalize input
 
-        self.n += 1. #CHANGE
-        last_mean = self.mean.copy()
-        self.mean += (self.observation-self.mean)/self.n
-        self.mean_diff += (self.observation-last_mean)*(self.observation-self.mean)
+        #self.n += 1. #CHANGE
+        #last_mean = self.mean.copy()
+        #self.mean += (self.observation-self.mean)/self.n
+        #self.mean_diff += (self.observation-last_mean)*(self.observation-self.mean)
         self.var = np.maximum(self.mean_diff/self.n, 1e-2)
         obs_std = np.sqrt(self.var)
         self.observation = (self.observation- self.mean)/obs_std
@@ -380,9 +380,9 @@ class HSREnv(MujocoEnv):
                     #    0.48 * np.random.random() - 0.24,0.422, np.random.random(), 0, 0, np.random.random()] 
                     #self.sim.data.qpos[i:i+7] = [0.32 * np.random.random() - 0.16,0.48 * np.random.random() - 0.24,0.422, 0, 0, 0, 0] 
                     #self.sim.data.qpos[i:i+7] = [0.16 * np.random.random() - 0.08,0.24 * np.random.random() - 0.12,0.422, 0, 0, 0, 0] 
-                    #self.sim.data.qpos[i:i+7] = [0.16 * np.random.random() - 0.08 ,0,0.422, 0, 0, 0, 0] 
+                    self.sim.data.qpos[i:i+7] = [0.16 * np.random.random() - 0.08 ,0,0.422, 0, 0, 0, 0] 
                     #self.sim.data.qpos[i:i+7] = [0,0,0.422, 0, 0, 0, 0] 
-                    self.sim.data.qpos[i:i+7] = [0 ,-0.015 ,0.422, 0, 0, 0, 0]
+                    #self.sim.data.qpos[i:i+7] = [0 ,-0.015 ,0.422, 0, 0, 0, 0]
 
      
         
@@ -396,15 +396,15 @@ class HSREnv(MujocoEnv):
         
 
         #self.n += 1. #CHANGE
-        '''
-        last_mean = self.mean.copy()
-        self.mean += (self.observation-self.mean)/self.n
-        self.mean_diff += (self.observation-last_mean)*(self.observation-self.mean)
+        
+        #last_mean = self.mean.copy()
+        #self.mean += (self.observation-self.mean)/self.n
+        #self.mean_diff += (self.observation-last_mean)*(self.observation-self.mean)
         self.var = np.maximum(self.mean_diff/self.n, 1e-2)
         obs_std = np.sqrt(self.var)
         self.observation = (self.observation- self.mean)/obs_std
-        print("N =", self.n, " Mean = ", self.mean, "Mean diff = ", self.mean_diff, "var: ", self.var)
-        '''
+        #print("N =", self.n, " Mean = ", self.mean, "Mean diff = ", self.mean_diff, "var: ", self.var)
+        
         return self.observation
 
     def get_target_blocks(self, goal):
