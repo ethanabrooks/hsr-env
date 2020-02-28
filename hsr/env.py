@@ -63,7 +63,12 @@ class HSREnv(MujocoEnv):
         self.mean = np.zeros(6)
         self.mean_diff = np.zeros(6)
         self.var = np.zeros(6)
-        
+
+        self.n = np.array([52812.]*6)
+        self.mean = np.array([ 0.00960844, -0.01089391,  0.501524, 0.05619167, -0.0215852,0.41678179])
+        self.mean_diff = np.array([2.78843166e+02, 5.95294563e-01, 2.46403668e+02, 8.30043222e+02, 1.51303303e+02, 8.91179642e+02])
+        self.var = np.array([0.01 , 0.01, 0.01, 0.01571694,0.01, 0.01687457])
+
 
         # required for OpenAI code
         self.metadata = {'render.modes': 'rgb_array'}
@@ -83,7 +88,7 @@ class HSREnv(MujocoEnv):
 
         self.observation = None
         self.reward = None
-        
+    
 
 
 
@@ -169,15 +174,7 @@ class HSREnv(MujocoEnv):
 
         self.sim.data.ctrl[:] = [0, 0, 0, self.claw_rotation_ctrl, self.claws, self.claws] #updates gripper rotation and open/closed state
 
-        #normalize input
         
-        self.n += 1. #CHANGE
-        last_mean = self.mean.copy()
-        self.mean += (self.observation-self.mean)/self.n
-        self.mean_diff += (self.observation-last_mean)*(self.observation-self.mean)
-        self.var = np.maximum(self.mean_diff/self.n, 1e-2)
-        obs_std = np.sqrt(self.var)
-        self.observation = (self.observation- self.mean)/obs_std
         
 
 
@@ -198,11 +195,24 @@ class HSREnv(MujocoEnv):
             except:
                 print("Simulation step failed")
                 #self.reset_model()
+        #print(self._time_steps)
+
         self._time_steps += 1
         self.reward = self._get_reward(self.goal)
         self.observation  = self._get_observation()
+        
+        #normalize input
+        #normalize input
 
+        self.n += 1. #CHANGE
+        last_mean = self.mean.copy()
+        self.mean += (self.observation-self.mean)/self.n
+        self.mean_diff += (self.observation-last_mean)*(self.observation-self.mean)
+        self.var = np.maximum(self.mean_diff/self.n, 1e-2)
+        obs_std = np.sqrt(self.var)
+        self.observation = (self.observation- self.mean)/obs_std
 
+        
         block_pos = np.array([self.sim.data.get_body_xpos(body_name) for
             body_name in self.sim.model.body_names if "block" in body_name])
 
@@ -350,7 +360,9 @@ class HSREnv(MujocoEnv):
         return state
 
     def reset_model(self, init=False):
-        self._time_steps = 0
+
+        if self._time_steps >= self.steps_per_episode:
+            self._time_steps = 0
 
         #self.guiding_mocap_pos = [-0.25955956,  0.00525669,  0.78973095] # Initial position of hand_palm_link
         self.guiding_mocap_pos = [-0.1,  0,  0.75]
@@ -380,20 +392,19 @@ class HSREnv(MujocoEnv):
         self.goal = self.get_new_goal()
         self.target_blocks = self.get_target_blocks(self.goal)
  
-        """self.observation = self._get_observation()
-        self.n = np.zeros(6)
-        self.mean = np.zeros(6)
-        self.mean_diff = np.zeros(6)
-        self.var = np.zeros(6)
+        self.observation = self._get_observation()
+        
 
-        self.n += 1. #CHANGE
+        #self.n += 1. #CHANGE
+        '''
         last_mean = self.mean.copy()
         self.mean += (self.observation-self.mean)/self.n
         self.mean_diff += (self.observation-last_mean)*(self.observation-self.mean)
         self.var = np.maximum(self.mean_diff/self.n, 1e-2)
         obs_std = np.sqrt(self.var)
-        self.observation = (self.observation- self.mean)/obs_std"""
-        
+        self.observation = (self.observation- self.mean)/obs_std
+        print("N =", self.n, " Mean = ", self.mean, "Mean diff = ", self.mean_diff, "var: ", self.var)
+        '''
         return self.observation
 
     def get_target_blocks(self, goal):
