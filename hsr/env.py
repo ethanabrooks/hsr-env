@@ -221,6 +221,7 @@ class HSREnv(MujocoEnv):
         fingers_pos = (left_finger_pos + right_finger_pos)/2
         distance = distance_between(fingers_pos, block_pos[0])
         done = self._time_steps >= self.steps_per_episode or self.reward == 1
+        print("Env steps: ", self._time_steps)
 
 
         
