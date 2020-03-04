@@ -27,7 +27,7 @@ class HSREnv(MujocoEnv):
             xml_file: Path,
             goals: List[GoalSpec],
             starts: Dict[str, Box],
-            steps_per_action: int = 300,
+            steps_per_action: int = 30,
             obs_type: str = None,
             render: bool = False,
             record: bool = False,
@@ -45,7 +45,7 @@ class HSREnv(MujocoEnv):
         #self.mocap_limits = {"down": 0.37, "back": -0.44, "front": 0.75, "left": 0.55, "right": -.55, "up":1.5}   
         self.mocap_limits = {"down": 0.5, "back": -0.25, "front": 0.033, "left": 0.125, "right": -.125, "up":0.70}     
         self.guiding_mocap_pos = [-0.25955956,  0.00525669,  0.78973095] # Initial position of hand_palm_link
-        self.claws_open = 0 # Control for the claws. Open --> 1, Closed --> 0
+        self.claws = 0 # Control for the claws. Open --> 1, Closed --> -1
         self.claw_timer = 0
         self.claw_rotation_ctrl = 0 # -3.14 --> -90 degrees, 3.14 --> 90 degrees)
         self.color_goals = ["red", "blue", "white", "green"]
@@ -59,16 +59,28 @@ class HSREnv(MujocoEnv):
 
         self._obs_type = obs_type
 
+        self.n = np.zeros(6)
+        self.mean = np.zeros(6)
+        self.mean_diff = np.zeros(6)
+        self.var = np.zeros(6)
+
+        #self.n = np.array([52812.]*6)
+        #self.mean = np.array([ 0.00960844, -0.01089391,  0.501524, 0.05619167, -0.0215852,0.41678179])
+        #self.mean_diff = np.array([2.78843166e+02, 5.95294563e-01, 2.46403668e+02, 8.30043222e+02, 1.51303303e+02, 8.91179642e+02])
+        #self.var = np.array([0.01 , 0.01, 0.01, 0.01571694,0.01, 0.01687457])
+
+
         # required for OpenAI code
         self.metadata = {'render.modes': 'rgb_array'}
         self.reward_range = -np.inf, np.inf
-        self.spec = None
+        self.spec = {"mean": self.mean, "n": self.n, "mean_diff": self.mean_diff, "var": self.var}
+   
 
         self.video_recorder = None
         self._record = any([record, record_path, record_freq])
         self._render = any([render, render_freq])
         self.record_freq = record_freq or 20
-        self.render_freq = render_freq or 20
+        self.render_freq = render_freq or 1
         record_path = record_path or '/tmp/training-video'
         self.steps_per_action = steps_per_action
         self._block_name = 'block0'
@@ -76,10 +88,10 @@ class HSREnv(MujocoEnv):
 
         self.observation = None
         self.reward = None
-        self.n = np.zeros(6)
-        self.mean = np.zeros(6)
-        self.mean_diff = np.zeros(6)
-        self.var = np.zeros(6)
+    
+
+
+
         
         self.n = np.array([52812.]*6)
         self.mean = np.array([ 0.00960844, -0.01089391,  0.501524, 0.05619167, -0.0215852,0.41678179])
@@ -125,7 +137,8 @@ class HSREnv(MujocoEnv):
         fingers_pos = (left_finger_pos + right_finger_pos)/2
 
         #obs = np.array([*grip_pos.tolist(), grip_ang_pos, grip_state, *block_pos.tolist()[0], *block_quat.tolist()[0], *mocap_pos.tolist()])
-        obs = np.array([*grip_pos.tolist(),*block_pos.tolist()[0]])
+        #obs = np.array([*fingers_pos.tolist(), *grip_pos.tolist(),*block_pos.tolist()[0], self.claws,*mocap_pos.tolist()])
+        obs = np.array([*fingers_pos.tolist(), *block_pos.tolist()[0]])
 
         return obs
 
@@ -143,7 +156,7 @@ class HSREnv(MujocoEnv):
 
         lower_bounds = [self.mocap_limits["back"],self.mocap_limits["right"],self.mocap_limits["down"]]
         upper_bounds = [self.mocap_limits["front"],self.mocap_limits["left"],self.mocap_limits["up"]]
-        claws = np.clip(action[3], -1, 1)
+        self.claws = np.clip(action[3], -1, 1)
 
         #update claw rotation from action
         
@@ -162,10 +175,14 @@ class HSREnv(MujocoEnv):
             #do nothing
             pass"""
 
-        self.sim.data.ctrl[:] = [0, 0, 0, self.claw_rotation_ctrl, claws, claws] #updates gripper rotation and open/closed state
+        self.sim.data.ctrl[:] = [0, 0, 0, self.claw_rotation_ctrl, self.claws, self.claws] #updates gripper rotation and open/closed state
 
         
+        
+
+
         for i in range(self.steps_per_action):
+
             #self.guiding_mocap_pos += action[:3]
             self.guiding_mocap_pos[0] += action[0]
             self.guiding_mocap_pos[2] += action[2]
@@ -179,10 +196,14 @@ class HSREnv(MujocoEnv):
             try:
                 self.sim.step()
             except:
+                print("Simulation step failed")
                 self.reset_model()
+        #print(self._time_steps)
+
         self._time_steps += 1
         self.reward = self._get_reward(self.goal)
         self.observation  = self._get_observation()
+
 
         #normalize input
     
@@ -195,14 +216,7 @@ class HSREnv(MujocoEnv):
         self.observation = (self.observation- self.mean)/obs_std
         #print(self.observation)
         
-        """self.n += 1.
-        last_mean = self.mean.copy()
-        self.mean += (self.observation-self.mean)/self.n
-        self.mean_diff += (self.observation-last_mean)*(self.observation-self.mean)
-        self.var = np.maximum(self.mean_diff/self.n, 1e-2)
-        obs_std = np.sqrt(self.var)
-        self.observation = (self.observation- self.mean)/obs_std
-        """
+        
         
         block_pos = np.array([self.sim.data.get_body_xpos(body_name) for
             body_name in self.sim.model.body_names if "block" in body_name])
@@ -215,6 +229,7 @@ class HSREnv(MujocoEnv):
         #if self.reward == 1:
         #    print("SUCCESS")
         success = self.reward == 1 
+
         
         #info = {'log count': {'success': success and self._time_steps > 0}}
         return self.observation, self.reward, done, {}
@@ -284,7 +299,7 @@ class HSREnv(MujocoEnv):
         #    reward = 1.0
 
         for i in block_pos:
-            if i[2] > 0.55: reward = 1.0
+            if i[2] > 0.58: reward = 1.0
             #if self.isGrippingBlock(i, left_finger_pos, right_finger_pos):
             #    reward = 1.0
 
@@ -355,12 +370,13 @@ class HSREnv(MujocoEnv):
         #if self._time_steps >= self.steps_per_episode:
         self._time_steps = 0
 
-        self.guiding_mocap_pos = [-0.25955956,  0.00525669,  0.78973095] # Initial position of hand_palm_link
+        #self.guiding_mocap_pos = [-0.25955956,  0.00525669,  0.78973095] # Initial position of hand_palm_link
         self.guiding_mocap_pos = [-0.1,  0,  0.65]
         self.claw_rotation_ctrl = 0
         self.sim.data.mocap_pos[1] = self.guiding_mocap_pos
 
-   
+        
+        
         #reseting blocks positions
         if init == False:
             for joint_name in self.sim.model.joint_names:
@@ -370,7 +386,10 @@ class HSREnv(MujocoEnv):
                     #    0.48 * np.random.random() - 0.24,0.422, np.random.random(), 0, 0, np.random.random()] 
                     #self.sim.data.qpos[i:i+7] = [0.32 * np.random.random() - 0.16,0.48 * np.random.random() - 0.24,0.422, 0, 0, 0, 0] 
                     #self.sim.data.qpos[i:i+7] = [0.16 * np.random.random() - 0.08,0.24 * np.random.random() - 0.12,0.422, 0, 0, 0, 0] 
-                    self.sim.data.qpos[i:i+7] = [0.16 * np.random.random() - 0.08 ,-0.015 ,0.422, 0, 0, 0, 0] 
+                    self.sim.data.qpos[i:i+7] = [0.16 * np.random.random() - 0.08 ,0,0.422, 0, 0, 0, 0] 
+                    #self.sim.data.qpos[i:i+7] = [0,0,0.422, 0, 0, 0, 0] 
+                    #self.sim.data.qpos[i:i+7] = [0 ,-0.015 ,0.422, 0, 0, 0, 0]
+
      
         
         state = self.new_state()
@@ -380,6 +399,18 @@ class HSREnv(MujocoEnv):
         self.target_blocks = self.get_target_blocks(self.goal)
  
         self.observation = self._get_observation()
+        
+
+        #self.n += 1. #CHANGE
+        
+        #last_mean = self.mean.copy()
+        #self.mean += (self.observation-self.mean)/self.n
+        #self.mean_diff += (self.observation-last_mean)*(self.observation-self.mean)
+        #self.var = np.maximum(self.mean_diff/self.n, 1e-2)
+        #obs_std = np.sqrt(self.var)
+        #self.observation = (self.observation- self.mean)/obs_std
+        print("N =", self.n, " Mean = ", self.mean, "Mean diff = ", self.mean_diff, "var: ", self.var)
+        
         return self.observation
 
     def get_target_blocks(self, goal):
