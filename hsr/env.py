@@ -183,9 +183,9 @@ class HSREnv(MujocoEnv):
 
         for i in range(self.steps_per_action):
 
-            #self.guiding_mocap_pos += action[:3]
-            self.guiding_mocap_pos[0] += action[0]
-            self.guiding_mocap_pos[2] += action[2]
+            self.guiding_mocap_pos += action[:3]
+            #self.guiding_mocap_pos[0] += action[0]
+            #self.guiding_mocap_pos[2] += action[2]
             self.guiding_mocap_pos = np.clip(self.guiding_mocap_pos, lower_bounds, upper_bounds)
             self.sim.data.mocap_pos[1] = self.guiding_mocap_pos
             if self._render and i % self.render_freq == 0:
@@ -226,6 +226,7 @@ class HSREnv(MujocoEnv):
         fingers_pos = (left_finger_pos + right_finger_pos)/2
         distance = distance_between(fingers_pos, block_pos[0])
         done = self.reward == 1 or self.reward == -1 or self._time_steps > self.steps_per_episode
+        #done = self._time_steps > self.steps_per_episode
         #if self.reward == 1:
         #    print("SUCCESS")
         success = self.reward == 1 
@@ -385,8 +386,8 @@ class HSREnv(MujocoEnv):
                     #self.sim.data.qpos[i:i+7] = [0.32 * np.random.random() - 0.16, 
                     #    0.48 * np.random.random() - 0.24,0.422, np.random.random(), 0, 0, np.random.random()] 
                     #self.sim.data.qpos[i:i+7] = [0.32 * np.random.random() - 0.16,0.48 * np.random.random() - 0.24,0.422, 0, 0, 0, 0] 
-                    #self.sim.data.qpos[i:i+7] = [0.16 * np.random.random() - 0.08,0.24 * np.random.random() - 0.12,0.422, 0, 0, 0, 0] 
-                    self.sim.data.qpos[i:i+7] = [0.16 * np.random.random() - 0.08 ,0,0.422, 0, 0, 0, 0] 
+                    self.sim.data.qpos[i:i+7] = [0.16 * np.random.random() - 0.08,0.24 * np.random.random() - 0.12,0.422, 0, 0, 0, 0] 
+                    #self.sim.data.qpos[i:i+7] = [0.16 * np.random.random() - 0.08 ,0,0.422, 0, 0, 0, 0] 
                     #self.sim.data.qpos[i:i+7] = [0,0,0.422, 0, 0, 0, 0] 
                     #self.sim.data.qpos[i:i+7] = [0 ,-0.015 ,0.422, 0, 0, 0, 0]
 
@@ -399,7 +400,10 @@ class HSREnv(MujocoEnv):
         self.target_blocks = self.get_target_blocks(self.goal)
  
         self.observation = self._get_observation()
-        
+        self.var = np.maximum(self.mean_diff/self.n, 1e-2)
+        obs_std = np.sqrt(self.var)
+        self.observation = (self.observation- self.mean)/obs_std
+
 
         #self.n += 1. #CHANGE
         
