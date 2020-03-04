@@ -226,6 +226,7 @@ class HSREnv(MujocoEnv):
         fingers_pos = (left_finger_pos + right_finger_pos)/2
         distance = distance_between(fingers_pos, block_pos[0])
         done = self.reward == 1 or self.reward == -1 or self._time_steps > self.steps_per_episode
+        #done = self._time_steps > self.steps_per_episode
         #if self.reward == 1:
         #    print("SUCCESS")
         success = self.reward == 1 
@@ -399,7 +400,10 @@ class HSREnv(MujocoEnv):
         self.target_blocks = self.get_target_blocks(self.goal)
  
         self.observation = self._get_observation()
-        
+        self.var = np.maximum(self.mean_diff/self.n, 1e-2)
+        obs_std = np.sqrt(self.var)
+        self.observation = (self.observation- self.mean)/obs_std
+
 
         #self.n += 1. #CHANGE
         
@@ -409,7 +413,7 @@ class HSREnv(MujocoEnv):
         #self.var = np.maximum(self.mean_diff/self.n, 1e-2)
         #obs_std = np.sqrt(self.var)
         #self.observation = (self.observation- self.mean)/obs_std
-        print("N =", self.n, " Mean = ", self.mean, "Mean diff = ", self.mean_diff, "var: ", self.var)
+        #print("N =", self.n, " Mean = ", self.mean, "Mean diff = ", self.mean_diff, "var: ", self.var)
         
         return self.observation
 
