@@ -64,10 +64,10 @@ class HSREnv(MujocoEnv):
         self.mean_diff = np.zeros(6)
         self.var = np.zeros(6)
 
-        self.n = np.array([52812.]*6)
-        self.mean = np.array([ 0.00960844, -0.01089391,  0.501524, 0.05619167, -0.0215852,0.41678179])
-        self.mean_diff = np.array([2.78843166e+02, 5.95294563e-01, 2.46403668e+02, 8.30043222e+02, 1.51303303e+02, 8.91179642e+02])
-        self.var = np.array([0.01 , 0.01, 0.01, 0.01571694,0.01, 0.01687457])
+        #self.n = np.array([52812.]*6)
+        #self.mean = np.array([ 0.00960844, -0.01089391,  0.501524, 0.05619167, -0.0215852,0.41678179])
+        #self.mean_diff = np.array([2.78843166e+02, 5.95294563e-01, 2.46403668e+02, 8.30043222e+02, 1.51303303e+02, 8.91179642e+02])
+        #self.var = np.array([0.01 , 0.01, 0.01, 0.01571694,0.01, 0.01687457])
 
 
         # required for OpenAI code
@@ -93,7 +93,10 @@ class HSREnv(MujocoEnv):
 
 
         
-        
+        self.n = np.array([52812.]*6)
+        self.mean = np.array([ 0.00960844, -0.01089391,  0.501524, 0.05619167, -0.0215852,0.41678179])
+        self.mean_diff = np.array([2.78843166e+02, 5.95294563e-01, 2.46403668e+02, 8.30043222e+02, 1.51303303e+02, 8.91179642e+02])
+        self.var = np.array([0.01 , 0.01, 0.01, 0.01571694,0.01, 0.01687457]) 
         
 
         if self._record:
@@ -190,28 +193,30 @@ class HSREnv(MujocoEnv):
             if self._record and i % self.record_freq == 0:
                 self.video_recorder.capture_frame()
             # Try to see if the simulation doesn't become unstable
-            #try:
-            self.sim.step()
-            #except:
-            #print("Simulation step failed")
-            #self.reset_model()
+            try:
+                self.sim.step()
+            except:
+                print("Simulation step failed")
+                self.reset_model()
         #print(self._time_steps)
 
         self._time_steps += 1
         self.reward = self._get_reward(self.goal)
         self.observation  = self._get_observation()
-        
-        #normalize input
-        #normalize input
 
-        #self.n += 1. #CHANGE
+
+        #normalize input
+    
+        #self.n += 1.
         #last_mean = self.mean.copy()
         #self.mean += (self.observation-self.mean)/self.n
         #self.mean_diff += (self.observation-last_mean)*(self.observation-self.mean)
         self.var = np.maximum(self.mean_diff/self.n, 1e-2)
         obs_std = np.sqrt(self.var)
         self.observation = (self.observation- self.mean)/obs_std
-
+        #print(self.observation)
+        
+        
         
         block_pos = np.array([self.sim.data.get_body_xpos(body_name) for
             body_name in self.sim.model.body_names if "block" in body_name])
@@ -220,9 +225,10 @@ class HSREnv(MujocoEnv):
         right_finger_pos = self.sim.data.get_body_xpos('hand_r_finger_tip_frame')
         fingers_pos = (left_finger_pos + right_finger_pos)/2
         distance = distance_between(fingers_pos, block_pos[0])
-        done = self._time_steps >= self.steps_per_episode or self.reward == 1
-        print("Env steps: ", self._time_steps)
-
+        done = self.reward == 1 or self.reward == -1 or self._time_steps > self.steps_per_episode
+        #if self.reward == 1:
+        #    print("SUCCESS")
+        success = self.reward == 1 
 
         
         #info = {'log count': {'success': success and self._time_steps > 0}}
@@ -361,12 +367,11 @@ class HSREnv(MujocoEnv):
         return state
 
     def reset_model(self, init=False):
-
-        if self._time_steps >= self.steps_per_episode:
-            self._time_steps = 0
+        #if self._time_steps >= self.steps_per_episode:
+        self._time_steps = 0
 
         #self.guiding_mocap_pos = [-0.25955956,  0.00525669,  0.78973095] # Initial position of hand_palm_link
-        self.guiding_mocap_pos = [-0.1,  0,  0.75]
+        self.guiding_mocap_pos = [-0.1,  0,  0.65]
         self.claw_rotation_ctrl = 0
         self.sim.data.mocap_pos[1] = self.guiding_mocap_pos
 
@@ -401,9 +406,9 @@ class HSREnv(MujocoEnv):
         #last_mean = self.mean.copy()
         #self.mean += (self.observation-self.mean)/self.n
         #self.mean_diff += (self.observation-last_mean)*(self.observation-self.mean)
-        self.var = np.maximum(self.mean_diff/self.n, 1e-2)
-        obs_std = np.sqrt(self.var)
-        self.observation = (self.observation- self.mean)/obs_std
+        #self.var = np.maximum(self.mean_diff/self.n, 1e-2)
+        #obs_std = np.sqrt(self.var)
+        #self.observation = (self.observation- self.mean)/obs_std
         #print("N =", self.n, " Mean = ", self.mean, "Mean diff = ", self.mean_diff, "var: ", self.var)
         
         return self.observation
