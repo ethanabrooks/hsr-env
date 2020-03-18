@@ -138,7 +138,7 @@ class HSREnv(MujocoEnv):
 
         #obs = np.array([*grip_pos.tolist(), grip_ang_pos, grip_state, *block_pos.tolist()[0], *block_quat.tolist()[0], *mocap_pos.tolist()])
         #obs = np.array([*fingers_pos.tolist(), *grip_pos.tolist(),*block_pos.tolist()[0], self.claws,*mocap_pos.tolist()])
-        obs = np.array([*fingers_pos.tolist(), *block_pos.tolist()[0]])
+        obs = np.array([*fingers_pos.tolist(), *block_pos.tolist()[0], grip_ang_pos])
 
         return obs
 
@@ -150,13 +150,12 @@ class HSREnv(MujocoEnv):
             [forward/backwards speed, right/left speed, up/down speed]
 
         """
-        #print("Num steps: ", self.steps_per_episode)
-        #action = action/30
-        action[:3] = np.clip(action[:3], -0.001, 0.001)
 
+        action[:3] = np.clip(action[:3], -0.001, 0.001)
         lower_bounds = [self.mocap_limits["back"],self.mocap_limits["right"],self.mocap_limits["down"]]
         upper_bounds = [self.mocap_limits["front"],self.mocap_limits["left"],self.mocap_limits["up"]]
         self.claws = np.clip(action[3], -1, 1)
+        self.claw_rotation_ctrl += np.clip(action[4], -.01, .01)
 
         #update claw rotation from action
         
@@ -213,7 +212,7 @@ class HSREnv(MujocoEnv):
         #self.mean_diff += (self.observation-last_mean)*(self.observation-self.mean)
         self.var = np.maximum(self.mean_diff/self.n, 1e-2)
         obs_std = np.sqrt(self.var)
-        self.observation = (self.observation- self.mean)/obs_std
+        self.observation[:-1] = (self.observation[:-1]- self.mean)/obs_std
         #print(self.observation)
         
         
@@ -402,7 +401,7 @@ class HSREnv(MujocoEnv):
         self.observation = self._get_observation()
         self.var = np.maximum(self.mean_diff/self.n, 1e-2)
         obs_std = np.sqrt(self.var)
-        self.observation = (self.observation- self.mean)/obs_std
+        self.observation[:-1] = (self.observation[:-1]- self.mean)/obs_std
 
 
         #self.n += 1. #CHANGE
